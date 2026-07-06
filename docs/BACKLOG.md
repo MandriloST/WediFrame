@@ -2,7 +2,7 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-06 (v2)
+> **Zadnje ažurirano:** 2026-07-06 (v3)
 
 ---
 
@@ -39,10 +39,10 @@
 - [x] Definiran koncept, MVP opseg, arhitektura (PROJECT.md, ARCHITECTURE.md) — 2026-07-04
 - [x] Razriješena ključna otvorena pitanja (stack, baza, paketi, retencija, hosting, brend) — 2026-07-06
 - [x] Plan paketa unesen u dokumentaciju — 2026-07-06
-- [ ] Korisnik: registrirati wediframe.hr (.com nedostupan — pratiti/backorder)
+- [ ] Korisnik: registrirati wediframe.hr — **preporuka Claudea: registrirati ODMAH, ne pri kraju** (.com već zauzet → ime je izloženo; trošak zanemariv, rizik gubitka brenda realan)
 - [ ] Kreirati Git repo, dodati /docs s ova tri .md fajla, podijeliti link u chatu
-- [ ] Postaviti solution strukturu (.NET modularni monolit skeleton, EF Core Code First + prva migracija) — bez feature koda
-- [ ] Postaviti Next.js projekt (mobile-first, i18n skeleton, PWA manifest)
+- [~] Postaviti solution strukturu (.NET modularni monolit skeleton, EF Core Code First + prva migracija) — **skeleton isporučen 2026-07-06 (v3)**; ostaje korisnik lokalno: `dotnet build`, `dotnet ef migrations add InitialCreate`, `database update`, commit
+- [ ] Postaviti Next.js projekt (mobile-first, i18n skeleton, PWA manifest) — **sljedeća sesija**
 - [ ] Cloudflare račun + R2 bucket (EU jurisdiction), Stripe test račun, Railway + Neon (EU) projekti
 
 ## M1 — Event + guest upload (srce proizvoda)
@@ -127,9 +127,15 @@
 | 2026-07-06 | Svi limiti paketa su ukupni; max video datoteka **2 GB** | Potvrda vlasnika |
 | 2026-07-06 | R1 flow: checkbox u checkoutu → firma, OIB, adresa | Potvrda vlasnika |
 | 2026-07-06 | Dodatni jezici (srpski...) post-MVP; i18n ključevi, bez hardkodiranih stringova, layout tolerantan na duže prijevode | Zahtjev vlasnika — spremnost bez sadašnjeg troška |
+| 2026-07-06 (v3) | **Jedan `AppDbContext`** za cijeli monolit; granice modula preko **PostgreSQL shema po modulu** (identity, events, media, ...) | Jedna povijest migracija i jedan deploy — najmanje trenja za solo developera; sheme čuvaju granice; lako kasnije razdvojiti context po modulu |
+| 2026-07-06 (v3) | Moduli se registriraju **eksplicitnom listom** u `Program.cs` (`IModule` ugovor), bez reflection/auto-discovery | Čitljivost i predvidljivost > magija; trivijalno za AI-asistirani rad |
+| 2026-07-06 (v3) | `.slnx` solution format + **Central Package Management** (Directory.Packages.props) | Moderni .NET 10 standard; verzije paketa na jednom mjestu |
+| 2026-07-06 (v3) | Inicijalna migracija sadrži samo `shared.audit_log` | Backlog traži skeleton bez feature koda; audit log je infrastrukturni i treba svima (GDPR/M4) |
+| 2026-07-06 (v3) | Default EF naming (PascalCase) u PG, bez snake_case paketa | Jedna ovisnost manje; može se promijeniti prije prvih feature entiteta ako zasmeta |
 
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
 - **2026-07-06** — Korisnik odgovorio na svih 9 pitanja; ažurirane sve tri datoteke (Code First, PostgreSQL, paketi, T0 semantika, hosting, fiskalizacija, brend, guest layout). Ostala 4 manja otvorena pitanja. **Sljedeći korak:** Git repo + /docs, zatim .NET i Next.js skeleton (M0).
-- **2026-07-06 (v2)** — Zatvorena preostala 4 pitanja (limiti ukupni, video 2 GB/datoteka, .com nedostupan, R1 flow) + napomena o budućoj višejezičnosti. Backlog bez otvorenih pitanja. **Sljedeći korak:** korisnik kreira Git repo i stavlja /docs; zatim skeleton (.NET modularni monolit + Next.js).
+- **2026-07-06 (v2)** — Zatvorena preostala 4 pitanja (limiti ukupni, video 2 GB/datoteka, .com nedostupan, R1 flow) + napomena o budućoj višejezičnosti. Backlog bez otvorenih pitanja.
+- **2026-07-06 (v3)** — Isporučen **.NET skeleton** (WediFrame.slnx, Api host, Shared kernel s `IModule` + `AuditLogEntry`, Infrastructure s `AppDbContext` + design-time factory, 7 praznih modula, README s quickstartom). Kod NIJE kompajliran u sesiji (nema .NET SDK u okruženju) — korisnik lokalno: `dotnet build` → `dotnet ef migrations add InitialCreate` → `database update` → commit u repo. **Sljedeći korak:** korisnik potvrdi build + commit; zatim Next.js skeleton (mobile-first, i18n, PWA manifest).

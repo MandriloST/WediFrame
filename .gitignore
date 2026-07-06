@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+!.vscode/settings.json
+artifacts/
+TestResults/
+
+# Rider / IDEA
+.idea/
+
+# Node / Next.js (za kasniji frontend)
+node_modules/
+.next/
+out/
+next-env.d.ts
+
+# Env & secrets — NIKAD u repo
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+*.pfx
+
+# OS
+.DS_Store
+Thumbs.db

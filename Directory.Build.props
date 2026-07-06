@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <!-- NU1902/NU1903 = vulnerability warnings na transitivnim paketima koje ne možemo 
+         direktno kontrolirati. Pinamo ih gore u Directory.Packages.props — 
+         ako ostanu nakon pina, znači da fix verzija još nije izašla. -->
+    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

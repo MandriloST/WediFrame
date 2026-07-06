@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WediFrame.Api/WediFrame.Api.csproj" />
+    <Project Path="src/WediFrame.Shared/WediFrame.Shared.csproj" />
+    <Project Path="src/WediFrame.Infrastructure/WediFrame.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/WediFrame.Modules.Identity/WediFrame.Modules.Identity.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Events/WediFrame.Modules.Events.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Media/WediFrame.Modules.Media.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Billing/WediFrame.Modules.Billing.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Partners/WediFrame.Modules.Partners.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Retention/WediFrame.Modules.Retention.csproj" />
+    <Project Path="src/Modules/WediFrame.Modules.Admin/WediFrame.Modules.Admin.csproj" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/PROJECT.md" />
+    <File Path="docs/ARCHITECTURE.md" />
+    <File Path="docs/BACKLOG.md" />
+  </Folder>
+</Solution>
