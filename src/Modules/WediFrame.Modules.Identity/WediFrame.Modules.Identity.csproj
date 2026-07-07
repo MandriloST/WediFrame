@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <!-- EF Core: entiteti + IEntityTypeConfiguration žive u modulu.
-         JwtBearer: donosi Microsoft.IdentityModel.JsonWebTokens za izdavanje tokena
-         (ista verzija kao validacija u API hostu — bez version skew-a). -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- Npgsql EF Core provider povlači Microsoft.EntityFrameworkCore.Relational,
+         koji donosi ToTable/HasColumnType i ostale relacijske ekstenzije.
+         Bazni Microsoft.EntityFrameworkCore paket ih NE uključuje.
+         JwtBearer: donosi Microsoft.IdentityModel.JsonWebTokens za izdavanje tokena. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
   <ItemGroup>
