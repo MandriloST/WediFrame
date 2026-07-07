@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WediFrame.Modules.Identity;
 using WediFrame.Shared.Audit;
 
 namespace WediFrame.Infrastructure.Persistence;
@@ -7,7 +8,8 @@ namespace WediFrame.Infrastructure.Persistence;
 /// Single DbContext for the modular monolith (one migration history, one deploy unit).
 /// Module boundaries are kept via PostgreSQL schemas: each module's entities live in
 /// its own schema (identity, events, media, billing, partners, shared...).
-/// When modules gain entities (M1+), add their configuration assemblies below.
+/// Modules access data through the base <see cref="DbContext"/> registered in DI
+/// (see Program.cs) — they never reference this assembly.
 /// </summary>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
@@ -15,10 +17,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configurations from this assembly (shared/infrastructure entities).
+        // Shared/infrastructure entities.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        // M1+: apply module configuration assemblies here, e.g.
-        // modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsModule).Assembly);
+        // Module entities — one line per module as they gain entities (M1+).
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityModule).Assembly);
     }
 }
