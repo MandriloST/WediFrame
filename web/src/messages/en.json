@@ -1,0 +1,21 @@
+{
+  "common": {
+    "appName": "WediFrame",
+    "poweredBy": "Powered by EverFrame",
+    "loading": "Loading…"
+  },
+  "landing": {
+    "title": "Every photo and video from your wedding. In one place.",
+    "subtitle": "Guests scan a QR code and share memories — no app, no sign-up.",
+    "steps": {
+      "one": "Create your event and get a QR code",
+      "two": "Guests scan it and upload photos and videos",
+      "three": "All memories in one private gallery"
+    },
+    "cta": "Coming soon"
+  },
+  "meta": {
+    "title": "WediFrame — wedding photos and videos in one place",
+    "description": "A private gallery for your wedding. Guests share photos and videos with no app and no sign-up — they just scan a QR code."
+  }
+}

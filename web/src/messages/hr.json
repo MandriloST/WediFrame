@@ -1,0 +1,21 @@
+{
+  "common": {
+    "appName": "WediFrame",
+    "poweredBy": "Powered by EverFrame",
+    "loading": "Učitavanje…"
+  },
+  "landing": {
+    "title": "Sve fotke i videi s vašeg vjenčanja. Na jednom mjestu.",
+    "subtitle": "Gosti skeniraju QR kod i dijele uspomene — bez aplikacije, bez registracije.",
+    "steps": {
+      "one": "Kreirajte event i dobijete QR kod",
+      "two": "Gosti skeniraju i uploadaju slike i video",
+      "three": "Sve uspomene u privatnoj galeriji"
+    },
+    "cta": "Uskoro"
+  },
+  "meta": {
+    "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",
+    "description": "Privatna galerija za vaše vjenčanje. Gosti dijele fotografije i video bez aplikacije i registracije — samo skeniraju QR kod."
+  }
+}

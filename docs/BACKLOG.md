@@ -2,13 +2,13 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-06 (v3)
+> **Zadnje ažurirano:** 2026-07-07 (v4)
 
 ---
 
 ## Otvorena pitanja (čekaju korisnika)
 
-*(trenutno nema otvorenih pitanja)*
+- **Link na GitHub repo** — podijeliti u chatu da Claude može čitati stvarno stanje koda prije prijedloga (spomenut push + develop branch, ali link još nije dostavljen).
 
 ## Riješena pitanja (2026-07-06, v2)
 
@@ -39,11 +39,11 @@
 - [x] Definiran koncept, MVP opseg, arhitektura (PROJECT.md, ARCHITECTURE.md) — 2026-07-04
 - [x] Razriješena ključna otvorena pitanja (stack, baza, paketi, retencija, hosting, brend) — 2026-07-06
 - [x] Plan paketa unesen u dokumentaciju — 2026-07-06
-- [ ] Korisnik: registrirati wediframe.hr — **preporuka Claudea: registrirati ODMAH, ne pri kraju** (.com već zauzet → ime je izloženo; trošak zanemariv, rizik gubitka brenda realan)
-- [ ] Kreirati Git repo, dodati /docs s ova tri .md fajla, podijeliti link u chatu
-- [~] Postaviti solution strukturu (.NET modularni monolit skeleton, EF Core Code First + prva migracija) — **skeleton isporučen 2026-07-06 (v3)**; ostaje korisnik lokalno: `dotnet build`, `dotnet ef migrations add InitialCreate`, `database update`, commit
-- [ ] Postaviti Next.js projekt (mobile-first, i18n skeleton, PWA manifest) — **sljedeća sesija**
-- [ ] Cloudflare račun + R2 bucket (EU jurisdiction), Stripe test račun, Railway + Neon (EU) projekti
+- [ ] Korisnik: registrirati wediframe.hr — **odluka korisnika 2026-07-07: registracija pri kraju projekta** (Claude preporučio odmah zbog rizika zauzeća; korisnik svjestan, ostaje njegova odluka)
+- [x] Kreirati Git repo, dodati /docs — 2026-07-07 (push napravljen, `develop` branch za razvoj; link repoa još nije podijeljen u chatu)
+- [x] Postaviti solution strukturu (.NET modularni monolit skeleton, EF Core Code First + prva migracija) — 2026-07-07: build prolazi, migracija `InitialCreate` primijenjena na lokalni PG (`shared.audit_log`); riješeni NU1903 (pin ranjivih transitivnih paketa + NoWarn NU1902/NU1903) i NU1605 (EF paketi na 10.0.4)
+- [x] Postaviti Next.js projekt (mobile-first, i18n skeleton, PWA manifest) — 2026-07-07: `web/` u monorepou; Next 16 + next-intl (HR default bez prefiksa, /en), manifest + placeholder ikone, landing placeholder; build/lint/smoke test prošli — **čeka commit korisnika**
+- [ ] Cloudflare račun + R2 bucket (EU jurisdiction), Stripe test račun, Railway + Neon (EU) projekti — korisnik (može i tijekom M1; R2 treba prije Media flowa)
 
 ## M1 — Event + guest upload (srce proizvoda)
 
@@ -91,8 +91,8 @@
 - [ ] Token rotacija (host UI) + upozorenje "link = puni pristup"
 - [ ] Rate limiting guest ruta
 - [ ] Partner izvještaj (admin): iskorištenja kodova po partneru
-- [ ] Landing stranica (WediFrame brending, "Powered by EverFrame")
-- [ ] PWA fino: manifest, ikone, offline fallback poruka
+- [ ] Landing stranica (WediFrame brending, "Powered by EverFrame") — placeholder postoji od M0; pravi dizajn ovdje
+- [ ] PWA fino: manifest ✔ (M0), prave ikone/logo umjesto placeholdera, service worker, offline fallback poruka
 - [ ] Load test upload flowa (~100 istovremenih gostiju)
 - [ ] Pilot: 1–2 stvarna eventa (preko partnera, možda besplatno) prije naplate
 
@@ -127,15 +127,23 @@
 | 2026-07-06 | Svi limiti paketa su ukupni; max video datoteka **2 GB** | Potvrda vlasnika |
 | 2026-07-06 | R1 flow: checkbox u checkoutu → firma, OIB, adresa | Potvrda vlasnika |
 | 2026-07-06 | Dodatni jezici (srpski...) post-MVP; i18n ključevi, bez hardkodiranih stringova, layout tolerantan na duže prijevode | Zahtjev vlasnika — spremnost bez sadašnjeg troška |
-| 2026-07-06 (v3) | **Jedan `AppDbContext`** za cijeli monolit; granice modula preko **PostgreSQL shema po modulu** (identity, events, media, ...) | Jedna povijest migracija i jedan deploy — najmanje trenja za solo developera; sheme čuvaju granice; lako kasnije razdvojiti context po modulu |
-| 2026-07-06 (v3) | Moduli se registriraju **eksplicitnom listom** u `Program.cs` (`IModule` ugovor), bez reflection/auto-discovery | Čitljivost i predvidljivost > magija; trivijalno za AI-asistirani rad |
-| 2026-07-06 (v3) | `.slnx` solution format + **Central Package Management** (Directory.Packages.props) | Moderni .NET 10 standard; verzije paketa na jednom mjestu |
-| 2026-07-06 (v3) | Inicijalna migracija sadrži samo `shared.audit_log` | Backlog traži skeleton bez feature koda; audit log je infrastrukturni i treba svima (GDPR/M4) |
-| 2026-07-06 (v3) | Default EF naming (PascalCase) u PG, bez snake_case paketa | Jedna ovisnost manje; može se promijeniti prije prvih feature entiteta ako zasmeta |
+| 2026-07-06 (v3) | **Jedan `AppDbContext`** za cijeli monolit; granice modula preko **PostgreSQL shema po modulu** | Jedna povijest migracija i jedan deploy — najmanje trenja za solo dev; lako kasnije razdvojiti |
+| 2026-07-06 (v3) | Moduli se registriraju **eksplicitnom listom** u `Program.cs` (`IModule` ugovor), bez reflectiona | Čitljivost i predvidljivost > magija |
+| 2026-07-06 (v3) | `.slnx` solution format + Central Package Management | Moderni .NET 10 standard; verzije na jednom mjestu |
+| 2026-07-06 (v3) | Inicijalna migracija sadrži samo `shared.audit_log` | Skeleton bez feature koda; audit log infrastrukturni (GDPR/M4) |
+| 2026-07-06 (v3) | Default EF naming (PascalCase) u PG, bez snake_case paketa | Jedna ovisnost manje |
+| 2026-07-07 (v4) | NU1903 fix: pin ranjivih transitivnih paketa (`System.Security.Cryptography.Xml` 10.0.0, `Microsoft.OpenApi` 1.6.22) + `NoWarn NU1902;NU1903` | TreatWarningsAsErrors ostaje za C# warninge; vulnerability warningi na transitivama ne smiju blokirati build |
+| 2026-07-07 (v4) | EF Core paketi na **10.0.4** (Npgsql.EFCore.PG 10.0.1 zahtijeva >= 10.0.4) | NU1605 downgrade konflikt |
+| 2026-07-07 (v4) | **Monorepo**: frontend u `web/` folderu istog repoa | Solo dev: jedan repo = jedan izvor istine, /docs vrijedi za oboje |
+| 2026-07-07 (v4) | **`develop` branch** za razvoj (korisnik) | Workflow korisnika |
+| 2026-07-07 (v4) | i18n: **next-intl**, HR default **bez URL prefiksa** (`/`), EN na `/en`; localePrefix "as-needed" | wediframe.hr na hrvatskom bez /hr u URL-u; novi jezik = 1 linija + messages file |
+| 2026-07-07 (v4) | Skeleton **bez webfonta** (system font stack) | Tipografija je dizajnerska odluka koja dolazi s guest stranicom (M1); build neovisan o mreži |
+| 2026-07-07 (v4) | Domena wediframe.hr: registracija **pri kraju projekta** | Odluka korisnika (uz zabilježenu preporuku Claudea da se registrira ranije) |
 
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
-- **2026-07-06** — Korisnik odgovorio na svih 9 pitanja; ažurirane sve tri datoteke (Code First, PostgreSQL, paketi, T0 semantika, hosting, fiskalizacija, brend, guest layout). Ostala 4 manja otvorena pitanja. **Sljedeći korak:** Git repo + /docs, zatim .NET i Next.js skeleton (M0).
-- **2026-07-06 (v2)** — Zatvorena preostala 4 pitanja (limiti ukupni, video 2 GB/datoteka, .com nedostupan, R1 flow) + napomena o budućoj višejezičnosti. Backlog bez otvorenih pitanja.
-- **2026-07-06 (v3)** — Isporučen **.NET skeleton** (WediFrame.slnx, Api host, Shared kernel s `IModule` + `AuditLogEntry`, Infrastructure s `AppDbContext` + design-time factory, 7 praznih modula, README s quickstartom). Kod NIJE kompajliran u sesiji (nema .NET SDK u okruženju) — korisnik lokalno: `dotnet build` → `dotnet ef migrations add InitialCreate` → `database update` → commit u repo. **Sljedeći korak:** korisnik potvrdi build + commit; zatim Next.js skeleton (mobile-first, i18n, PWA manifest).
+- **2026-07-06** — Korisnik odgovorio na svih 9 pitanja; ažurirane sve tri datoteke. **Sljedeći korak:** Git repo + /docs, zatim .NET i Next.js skeleton (M0).
+- **2026-07-06 (v2)** — Zatvorena preostala 4 pitanja. Backlog bez otvorenih pitanja.
+- **2026-07-06 (v3)** — Isporučen .NET skeleton (slnx, Api host, Shared kernel, Infrastructure, 7 modula).
+- **2026-07-07 (v4)** — .NET skeleton **potvrđen kod korisnika**: riješeni NU1903 (pin + NoWarn) i NU1605 (EF 10.0.4), build prolazi, `InitialCreate` migracija primijenjena na lokalni PG. Repo pushan, `develop` branch kreiran (link još nije podijeljen). Isporučen **Next.js skeleton** u `web/`: Next 16 + TS + Tailwind 4, next-intl (HR default bez prefiksa, /en), PWA manifest + placeholder ikone, landing placeholder sa svim stringovima kroz i18n ključeve; build, lint i smoke test (HR/EN/manifest) verificirani u sesiji. **Sljedeći korak:** korisnik commita `web/` na develop + podijeli repo link; zatim M1 — Identity (registracija/prijava hosta) ili Events (kreiranje eventa + token + QR), preporuka: Identity prvi jer Events ovisi o njemu.
