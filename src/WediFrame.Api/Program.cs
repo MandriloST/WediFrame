@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using WediFrame.Infrastructure.Persistence;
+using WediFrame.Infrastructure.Storage;
 using WediFrame.Modules.Admin;
 using WediFrame.Modules.Billing;
 using WediFrame.Modules.Events;
@@ -24,6 +25,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
 builder.Services.AddSingleton(TimeProvider.System);
+
+// Cloudflare R2 (S3-compatible). Lazy: API boots without R2 config,
+// the first storage call throws a clear error instead.
+builder.Services.AddR2Storage(builder.Configuration);
 
 // --- AuthN/AuthZ ---------------------------------------------------------------
 // JWT bearer for host/admin endpoints. Guests are authorized by event token

@@ -62,6 +62,37 @@ dotnet run --project src/WediFrame.Api
 Connection string: `appsettings.Development.json` lokalno; na Railwayu env varijabla
 `ConnectionStrings__Database`. `dotnet ef` tooling koristi i env `WEDIFRAME_DB` (vidi `AppDbContextFactory`).
 
+## Cloudflare R2 (storage za medije)
+
+1. Cloudflare dashboard → R2 → Create bucket → ime `wediframe-dev` (za dev), **Location: Specify jurisdiction → European Union** (GDPR obveza, ne mijenjati).
+2. R2 → Manage API Tokens → Create API Token → permission **Object Read & Write**, scope samo taj bucket. Zapiši Access Key ID i Secret Access Key.
+3. CORS na bucketu (R2 → bucket → Settings → CORS policy) — bez ovoga browser ne može PUT-ati:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000"],
+    "AllowedMethods": ["GET", "PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+4. Tajne lokalno kroz user-secrets (nikad u appsettings u repou):
+
+```bash
+cd src/WediFrame.Api
+dotnet user-secrets init
+dotnet user-secrets set "R2:AccountId" "<cloudflare-account-id>"
+dotnet user-secrets set "R2:AccessKeyId" "<access-key-id>"
+dotnet user-secrets set "R2:SecretAccessKey" "<secret>"
+```
+
+Bucket ime je u `appsettings.Development.json` (`R2:Bucket`). Na Railwayu: env varijable
+`R2__AccountId`, `R2__AccessKeyId`, `R2__SecretAccessKey`, `R2__Bucket`.
+API se diže i bez R2 konfiguracije (health, auth, eventi rade) — prvi storage poziv baci jasnu grešku.
+
 ## Konvencije
 
 - Kod, komentari, imena u bazi i API-ju: engleski. Dokumentacija i komunikacija: hrvatski.
