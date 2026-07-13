@@ -4,16 +4,15 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Core paketi -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore"                 Version="10.0.4" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design"          Version="10.0.4" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL"         Version="10.0.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi"                  Version="10.0.4" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.4" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.4" />
-    <PackageVersion Include="QRCoder"                                       Version="1.8.0" />
-    <PackageVersion Include="AWSSDK.S3"                                     Version="4.0.7.12" />
-
+    <PackageVersion Include="QRCoder" Version="1.8.0" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.100.3" />
     <!-- Sigurnosni override: ranjivi transitivni paketi -->
-    <PackageVersion Include="System.Security.Cryptography.Xml"             Version="10.0.0" />
-    <PackageVersion Include="Microsoft.OpenApi"                             Version="1.6.22" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="1.6.22" />
   </ItemGroup>
 </Project>
