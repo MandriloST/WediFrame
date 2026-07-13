@@ -1,4 +1,7 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using WediFrame.Infrastructure.Persistence;
 using WediFrame.Modules.Admin;
 using WediFrame.Modules.Billing;
@@ -16,6 +19,31 @@ var builder = WebApplication.CreateBuilder(args);
 // (ConnectionStrings__Database).
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
+
+// Modules depend on the base DbContext (they never reference Infrastructure).
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
+builder.Services.AddSingleton(TimeProvider.System);
+
+// --- AuthN/AuthZ ---------------------------------------------------------------
+// JWT bearer for host/admin endpoints. Guests are authorized by event token
+// (Events module, M1) and never touch this scheme.
+var jwt = builder.Configuration.GetSection("Jwt");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false; // keep "sub", "email", "role" as-is
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = jwt["Issuer"],
+            ValidAudience = jwt["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SigningKey"] ?? "")),
+            NameClaimType = "sub",
+            RoleClaimType = "role",
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
+builder.Services.AddAuthorization();
 
 // --- Modules (explicit list — order matters only for readability) ------------
 IModule[] modules =
@@ -42,6 +70,9 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {

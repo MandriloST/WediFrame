@@ -2,13 +2,18 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-07 (v4)
+> **Zadnje ažurirano:** 2026-07-07 (v6)
 
 ---
 
 ## Otvorena pitanja (čekaju korisnika)
 
-- **Link na GitHub repo** — podijeliti u chatu da Claude može čitati stvarno stanje koda prije prijedloga (spomenut push + develop branch, ali link još nije dostavljen).
+*(trenutno nema otvorenih pitanja)*
+
+## Riješena pitanja (2026-07-07)
+
+- GitHub repo podijeljen: `https://github.com/MandriloST/WediFrame` — razvoj na `develop`, merge u `main` radi korisnik ✔
+- Domena wediframe.hr: korisnik potvrdio registraciju pri kraju projekta ✔
 
 ## Riješena pitanja (2026-07-06, v2)
 
@@ -47,8 +52,8 @@
 
 ## M1 — Event + guest upload (srce proizvoda)
 
-- [ ] Identity: registracija/prijava hosta (minimalno)
-- [ ] Events: kreiranje eventa (naslov, T0, draft), guest token, QR generiranje
+- [~] Identity: registracija/prijava hosta (minimalno) — kod isporučen (v5) + fix csproj-a (Npgsql provider za Relational ekstenzije) commitan na develop (`c0af638`); **ostaje: migracija + `database update` + smoke test** (zajednička migracija s Events, vidi dolje)
+- [~] Events: kreiranje eventa (naslov, T0, draft), guest token, QR generiranje — **kod isporučen 2026-07-07 (v6)**: `events.events` entitet, `POST/GET /api/v1/events`, `GET /events/{id}`, `GET /events/{id}/qr?format=png|svg&size=N` (QRCoder), guest token 32B Base64Url; ostaje korisnik lokalno: `dotnet build` → `dotnet ef migrations add AddIdentityAndEvents` → `database update` → smoke test → commit
 - [ ] Cover fotografija: upload (host) + prikaz na guest stranici
 - [ ] Media: presigned upload flow — single PUT za fotke
 - [ ] Media: multipart upload za video (chunk retry, resume, cleanup nedovršenih)
@@ -140,6 +145,21 @@
 | 2026-07-07 (v4) | Skeleton **bez webfonta** (system font stack) | Tipografija je dizajnerska odluka koja dolazi s guest stranicom (M1); build neovisan o mreži |
 | 2026-07-07 (v4) | Domena wediframe.hr: registracija **pri kraju projekta** | Odluka korisnika (uz zabilježenu preporuku Claudea da se registrira ranije) |
 
+| 2026-07-07 (v5) | **Smjer ovisnosti**: Infrastructure → Moduli (radi EF konfiguracija u `AppDbContext`); moduli NIKAD ne referenciraju Infrastructure — podatke koriste kroz bazni `DbContext` iz DI-ja (`AddScoped<DbContext>` alias na `AppDbContext` u `Program.cs`) | Bez kružnih referenci; entiteti i konfiguracije ostaju u modulu (self-contained), jedna migracijska povijest ostaje u Infrastructure |
+| 2026-07-07 (v5) | Auth: **JWT access (30 min) + opaque refresh token (30 dana, rotacija na svaku upotrebu, u bazi samo SHA-256 hash)** | Standard, jednostavno, revocable; bez vanjskog identity providera u MVP-u |
+| 2026-07-07 (v5) | Lozinke: `PasswordHasher<User>` iz ASP.NET Core Identity (PBKDF2), bez cijelog Identity frameworka | Provjeren hasher iz shared frameworka, nula dodatnih ovisnosti; framework bi bio overkill za 4 endpointa |
+| 2026-07-07 (v5) | API greške = **strojni kodovi** (`auth.email_taken`, `auth.invalid_credentials`...) u ProblemDetails; prijevod radi frontend kroz i18n | Backend ne zna jezik gosta/hosta pouzdano; jedan izvor prijevoda (messages/*.json) |
+| 2026-07-07 (v5) | Login vraća istu grešku za nepostojeći email i krivu lozinku | Sprječava account enumeration |
+| 2026-07-07 (v5) | `Jwt:SigningKey` obavezno izvan repoa (user-secrets / `Jwt__SigningKey` env); u `appsettings.Development.json` samo očiti dev-only key; validacija na startu (min 32 znaka) | Secrets disciplina od prvog auth koda |
+
+| 2026-07-07 (v6) | Moduli s entitetima referenciraju **`Npgsql.EntityFrameworkCore.PostgreSQL`** (ne bazni `Microsoft.EntityFrameworkCore`) | Bazni paket NE sadrži relacijske ekstenzije (`ToTable` i dr. su u `.Relational` koji dolazi kroz provider); potvrđeno CS1061 greškom kod korisnika; ujedno svi moduli na istom provideru |
+| 2026-07-07 (v6) | QR: **QRCoder 1.8.0** (MIT, aktivno održavan), PNG + SVG, ECC level Q | Nula ovisnosti o System.Drawing (cross-platform, Railway Linux); SVG idealan za tisak; Q (25%) redundancija za tiskane kartice |
+| 2026-07-07 (v6) | Guest token: **32 random bajta → Base64Url (43 znaka)**, unique index | ~256 bita entropije, URL-safe, neprebrojiv — zadovoljava sigurnosni zahtjev iz ARCHITECTURE.md |
+| 2026-07-07 (v6) | `Event.OwnerUserId` = **plain Guid bez cross-module FK/navigacije** na `identity.users` | Granice modula: Identity vlasnik korisnika, Events samo drži referencu; JOIN-ovi po potrebi kroz eksplicitne upite |
+| 2026-07-07 (v6) | **T0 kao `DateOnly`** (PG `date`) — host bira datum, ne trenutak | Odgovara semantici "datum početka uploada"; izračun perioda (uploadEndsAt/expiresAt) dolazi s paketima u M3 |
+| 2026-07-07 (v6) | Guest URL kroz **`Frontend:GuestBaseUrl`** config (`FrontendOptions` u Shared, validacija na startu) | Backend gradi apsolutne linkove za QR (i kasnije emailove u M4) bez hardkodiranja domene |
+| 2026-07-07 (v6) | Tuđi/nepostojeći event ID → **404, nikad 403** | Ne otkriva postojanje tuđih evenata (information disclosure) |
+
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
@@ -147,3 +167,5 @@
 - **2026-07-06 (v2)** — Zatvorena preostala 4 pitanja. Backlog bez otvorenih pitanja.
 - **2026-07-06 (v3)** — Isporučen .NET skeleton (slnx, Api host, Shared kernel, Infrastructure, 7 modula).
 - **2026-07-07 (v4)** — .NET skeleton **potvrđen kod korisnika**: riješeni NU1903 (pin + NoWarn) i NU1605 (EF 10.0.4), build prolazi, `InitialCreate` migracija primijenjena na lokalni PG. Repo pushan, `develop` branch kreiran (link još nije podijeljen). Isporučen **Next.js skeleton** u `web/`: Next 16 + TS + Tailwind 4, next-intl (HR default bez prefiksa, /en), PWA manifest + placeholder ikone, landing placeholder sa svim stringovima kroz i18n ključeve; build, lint i smoke test (HR/EN/manifest) verificirani u sesiji. **Sljedeći korak:** korisnik commita `web/` na develop + podijeli repo link; zatim M1 — Identity (registracija/prijava hosta) ili Events (kreiranje eventa + token + QR), preporuka: Identity prvi jer Events ovisi o njemu.
+- **2026-07-07 (v5)** — Repo link dostavljen; pročitano stvarno stanje `develop` brancha (M0 potvrđen: .NET skeleton + `web/` Next.js skeleton). Isporučen **M1 Identity** (registracija/prijava hosta): entiteti `User` + `RefreshToken` (shema `identity`), `TokenService` (JWT HS256 + rotirajući refresh), endpointi `POST /api/v1/auth/register|login|refresh`, `GET /api/v1/auth/me`; JWT bearer validacija u API hostu; `DbContext` alias pattern za module. Kod NIJE kompajliran u sesiji (nema .NET SDK) — korisnik lokalno: build → `dotnet ef migrations add AddIdentityAuth` → `database update` → smoke test → commit. **Sljedeći korak:** potvrda builda + migracije; zatim **Events: kreiranje eventa (naslov, T0, draft) + guest token + QR**.
+- **2026-07-07 (v6)** — Provjereno stanje developa (Identity kod + csproj fix commitani; migracija AddIdentityAuth JOŠ NE postoji). Isporučen **M1 Events** (kreiranje eventa + guest token + QR): `Event` entitet (shema `events`, status lifecycle, DateOnly T0), endpointi create/list/detail/QR (PNG download + SVG za tisak), `GuestTokenGenerator`, `QrCodeService` (QRCoder 1.8.0), `ClaimsPrincipalExtensions` + `FrontendOptions` u Shared, `Frontend:GuestBaseUrl` config. Korisnik lokalno: build → **JEDNA migracija `AddIdentityAndEvents`** (pokriva identity + events tablice) → `database update` → smoke test (register → create event → QR) → commit na develop. **Sljedeći korak:** potvrda; zatim Cloudflare R2 setup (korisnik) + **Media: presigned upload flow — single PUT za fotke** ili **Cover fotografija** (oboje treba R2).

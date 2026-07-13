@@ -1,5 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Npgsql EF Core provider povlači Microsoft.EntityFrameworkCore.Relational
+         (ToTable i ostale relacijske ekstenzije) — konvencija za sve module s entitetima.
+         QRCoder: generiranje QR koda (PNG/SVG) za guest link. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
   </ItemGroup>
 </Project>
