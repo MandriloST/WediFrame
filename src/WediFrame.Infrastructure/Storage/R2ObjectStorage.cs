@@ -84,8 +84,7 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
             var response = await _client.Value.GetObjectMetadataAsync(
                 new GetObjectMetadataRequest { BucketName = _bucket, Key = key }, ct);
 
-            // SDK v4: ContentLength is nullable (long?).
-            return new StoredObjectInfo(response.ContentLength ?? 0, response.Headers.ContentType);
+            return new StoredObjectInfo(response.ContentLength, response.Headers.ContentType);
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
