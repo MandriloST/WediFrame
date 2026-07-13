@@ -2,7 +2,7 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-07 (v6)
+> **Zadnje ažurirano:** 2026-07-13 (v7)
 
 ---
 
@@ -36,6 +36,9 @@
 - MVP bez video transcodinga; reprodukcija originala (R2 range requests).
 - Provizije partnerima ručno u MVP-u. HR + EN jezici.
 - Kod pitanja 5 korisnik je napisao "gost odabire datum" — protumačeno kao **host** odabire T0.
+- Cover fotografija: max **20 MB**, tipovi **JPEG/PNG/WebP** (v7 — pretpostavka, lako promjenjivo u `CoverPhotoRules`).
+- Guest stranica vidi event samo u statusu **Active/UploadClosed**; Draft/Expired/Deleted → 404 (v7 — pretpostavka).
+- `uploadOpen` na guest endpointu je provizoran do M3 (kraj upload perioda ovisi o paketu): Active + danas ≥ T0.
 
 ---
 
@@ -48,13 +51,13 @@
 - [x] Kreirati Git repo, dodati /docs — 2026-07-07 (push napravljen, `develop` branch za razvoj; link repoa još nije podijeljen u chatu)
 - [x] Postaviti solution strukturu (.NET modularni monolit skeleton, EF Core Code First + prva migracija) — 2026-07-07: build prolazi, migracija `InitialCreate` primijenjena na lokalni PG (`shared.audit_log`); riješeni NU1903 (pin ranjivih transitivnih paketa + NoWarn NU1902/NU1903) i NU1605 (EF paketi na 10.0.4)
 - [x] Postaviti Next.js projekt (mobile-first, i18n skeleton, PWA manifest) — 2026-07-07: `web/` u monorepou; Next 16 + next-intl (HR default bez prefiksa, /en), manifest + placeholder ikone, landing placeholder; build/lint/smoke test prošli — **čeka commit korisnika**
-- [ ] Cloudflare račun + R2 bucket (EU jurisdiction), Stripe test račun, Railway + Neon (EU) projekti — korisnik (može i tijekom M1; R2 treba prije Media flowa)
+- [ ] Cloudflare račun + R2 bucket (EU jurisdiction), Stripe test račun, Railway + Neon (EU) projekti — korisnik; **R2 bucket + API token sada blokira smoke test cover flowa** (upute korak-po-korak u README, sekcija "Cloudflare R2")
 
 ## M1 — Event + guest upload (srce proizvoda)
 
-- [~] Identity: registracija/prijava hosta (minimalno) — kod isporučen (v5) + fix csproj-a (Npgsql provider za Relational ekstenzije) commitan na develop (`c0af638`); **ostaje: migracija + `database update` + smoke test** (zajednička migracija s Events, vidi dolje)
-- [~] Events: kreiranje eventa (naslov, T0, draft), guest token, QR generiranje — **kod isporučen 2026-07-07 (v6)**: `events.events` entitet, `POST/GET /api/v1/events`, `GET /events/{id}`, `GET /events/{id}/qr?format=png|svg&size=N` (QRCoder), guest token 32B Base64Url; ostaje korisnik lokalno: `dotnet build` → `dotnet ef migrations add AddIdentityAndEvents` → `database update` → smoke test → commit
-- [ ] Cover fotografija: upload (host) + prikaz na guest stranici
+- [x] Identity: registracija/prijava hosta (minimalno) — 2026-07-13: migracija `AddIdentityAndEvents` (20260707110645) commitana i na `main` i na `develop` ✔
+- [x] Events: kreiranje eventa (naslov, T0, draft), guest token, QR generiranje — 2026-07-13: kod + migracija na `main`/`develop` ✔
+- [~] Cover fotografija: upload (host) + prikaz na guest stranici — **kod isporučen 2026-07-13 (v7)**: R2 storage infrastruktura (`IObjectStorage` u Shared, `R2ObjectStorage` u Infrastructure, AWSSDK.S3 v4), `POST /events/{id}/cover` (presigned PUT) + `POST /events/{id}/cover/confirm` (HEAD verifikacija, zamjena starog covera), `GET /guest/{token}` (javni event info s cover URL-om); ostaje korisnik lokalno: R2 bucket + token + CORS (README) → `dotnet build` → smoke test (register → create → cover start → PUT na R2 → confirm → guest info) → commit. **Bez nove migracije** (CoverPhotoKey već postoji).
 - [ ] Media: presigned upload flow — single PUT za fotke
 - [ ] Media: multipart upload za video (chunk retry, resume, cleanup nedovršenih)
 - [ ] Guest stranica `/e/{token}`: cover + naslov → upload button → upload UI s napretkom i statusima
@@ -160,6 +163,12 @@
 | 2026-07-07 (v6) | Guest URL kroz **`Frontend:GuestBaseUrl`** config (`FrontendOptions` u Shared, validacija na startu) | Backend gradi apsolutne linkove za QR (i kasnije emailove u M4) bez hardkodiranja domene |
 | 2026-07-07 (v6) | Tuđi/nepostojeći event ID → **404, nikad 403** | Ne otkriva postojanje tuđih evenata (information disclosure) |
 
+| 2026-07-13 (v7) | Storage apstrakcija `IObjectStorage` u Shared, R2 implementacija u Infrastructure; **AWSSDK.S3 v4** s `RequestChecksumCalculation/ResponseChecksumValidation = WHEN_REQUIRED` i path-style endpointom | R2 ne podržava defaultne CRC32 checksume SDK-a v4 (Cloudflare docs); apstrakcija drži module neovisnima o R2 |
+| 2026-07-13 (v7) | R2 klijent **lazy** — API se diže bez R2 konfiguracije, prvi storage poziv baca jasnu grešku | Dev bez buketa i dalje može raditi auth/events; nema skrivenih startup failova na Railwayu |
+| 2026-07-13 (v7) | Cover confirm je **stateless**: key putuje u requestu, vlasništvo dokazuje obavezni prefiks `events/{id}/cover/`; stari cover se briše NAKON DB commita | Nema pending-state tablice za jednu fotku; idempotentno; fail-safe redoslijed |
+| 2026-07-13 (v7) | Cover pravila: 20 MB max, JPEG/PNG/WebP (`CoverPhotoRules`) | Pretpostavka Claudea — dovoljno za mobilne fotke; vlasnik može korigirati |
+| 2026-07-13 (v7) | Guest vidljivost: samo Active/UploadClosed; token duljina sanity-check prije DB upita | Draft/istekli eventi ne smiju biti javno dohvatljivi; jeftin early-reject |
+
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
@@ -169,3 +178,4 @@
 - **2026-07-07 (v4)** — .NET skeleton **potvrđen kod korisnika**: riješeni NU1903 (pin + NoWarn) i NU1605 (EF 10.0.4), build prolazi, `InitialCreate` migracija primijenjena na lokalni PG. Repo pushan, `develop` branch kreiran (link još nije podijeljen). Isporučen **Next.js skeleton** u `web/`: Next 16 + TS + Tailwind 4, next-intl (HR default bez prefiksa, /en), PWA manifest + placeholder ikone, landing placeholder sa svim stringovima kroz i18n ključeve; build, lint i smoke test (HR/EN/manifest) verificirani u sesiji. **Sljedeći korak:** korisnik commita `web/` na develop + podijeli repo link; zatim M1 — Identity (registracija/prijava hosta) ili Events (kreiranje eventa + token + QR), preporuka: Identity prvi jer Events ovisi o njemu.
 - **2026-07-07 (v5)** — Repo link dostavljen; pročitano stvarno stanje `develop` brancha (M0 potvrđen: .NET skeleton + `web/` Next.js skeleton). Isporučen **M1 Identity** (registracija/prijava hosta): entiteti `User` + `RefreshToken` (shema `identity`), `TokenService` (JWT HS256 + rotirajući refresh), endpointi `POST /api/v1/auth/register|login|refresh`, `GET /api/v1/auth/me`; JWT bearer validacija u API hostu; `DbContext` alias pattern za module. Kod NIJE kompajliran u sesiji (nema .NET SDK) — korisnik lokalno: build → `dotnet ef migrations add AddIdentityAuth` → `database update` → smoke test → commit. **Sljedeći korak:** potvrda builda + migracije; zatim **Events: kreiranje eventa (naslov, T0, draft) + guest token + QR**.
 - **2026-07-07 (v6)** — Provjereno stanje developa (Identity kod + csproj fix commitani; migracija AddIdentityAuth JOŠ NE postoji). Isporučen **M1 Events** (kreiranje eventa + guest token + QR): `Event` entitet (shema `events`, status lifecycle, DateOnly T0), endpointi create/list/detail/QR (PNG download + SVG za tisak), `GuestTokenGenerator`, `QrCodeService` (QRCoder 1.8.0), `ClaimsPrincipalExtensions` + `FrontendOptions` u Shared, `Frontend:GuestBaseUrl` config. Korisnik lokalno: build → **JEDNA migracija `AddIdentityAndEvents`** (pokriva identity + events tablice) → `database update` → smoke test (register → create event → QR) → commit na develop. **Sljedeći korak:** potvrda; zatim Cloudflare R2 setup (korisnik) + **Media: presigned upload flow — single PUT za fotke** ili **Cover fotografija** (oboje treba R2).
+- **2026-07-13 (v7)** — Provjereno stanje repoa: `main` = `develop`, Identity + Events + migracija `AddIdentityAndEvents` commitani (M1 stavke 1–2 označene [x]). Isporučen **cover fotografija flow + R2 infrastruktura**: `IObjectStorage` (Shared), `R2Options`, `R2ObjectStorage` + DI ekstenzija (Infrastructure, AWSSDK.S3 4.0.7.12), `CoverPhotoRules`, cover endpointi (presigned PUT + confirm s HEAD verifikacijom i zamjenom starog covera), `GET /guest/{token}` javni event info (naslov, cover URL, uploadOpen), R2 config sekcije + README upute (bucket EU, API token, CORS, user-secrets). Bez nove migracije. Kod NIJE kompajliran u sesiji — korisnik lokalno: R2 setup → build → smoke test → commit na develop. **Sljedeći korak:** potvrda cover flowa; zatim **Media: presigned upload flow — single PUT za fotke** (guest upload, enforcement tipa/veličine/perioda).
