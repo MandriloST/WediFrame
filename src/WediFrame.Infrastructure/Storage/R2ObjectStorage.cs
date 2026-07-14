@@ -38,8 +38,11 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
 
         var config = new AmazonS3Config
         {
-            ServiceURL = $"https://{r2.AccountId}.r2.cloudflarestorage.com",
+            ServiceURL = r2.Endpoint, // EU-jurisdiction buckets use {accountId}.eu.r2.cloudflarestorage.com
             ForcePathStyle = true,
+            // R2 requires the SigV4 credential scope region to be "auto" —
+            // without this the SDK signs with us-east-1 and R2 answers AccessDenied.
+            AuthenticationRegion = "auto",
             // R2 does not support the SDK's default CRC32 checksums:
             RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
             ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
