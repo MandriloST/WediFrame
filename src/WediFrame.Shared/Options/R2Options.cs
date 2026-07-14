@@ -21,6 +21,19 @@ public sealed class R2Options
     /// <summary>Bucket name, e.g. "wediframe" (dev: "wediframe-dev").</summary>
     public string Bucket { get; set; } = "";
 
+    /// <summary>
+    /// R2 jurisdiction of the bucket. Jurisdictional buckets live on a separate
+    /// endpoint: {accountId}.{jurisdiction}.r2.cloudflarestorage.com.
+    /// Our buckets are always "eu" (GDPR); empty string = default namespace.
+    /// </summary>
+    public string Jurisdiction { get; set; } = "eu";
+
+    /// <summary>S3-compatible endpoint for this account + jurisdiction.</summary>
+    public string Endpoint =>
+        string.IsNullOrWhiteSpace(Jurisdiction)
+            ? $"https://{AccountId}.r2.cloudflarestorage.com"
+            : $"https://{AccountId}.{Jurisdiction.Trim().ToLowerInvariant()}.r2.cloudflarestorage.com";
+
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(AccountId)
         && !string.IsNullOrWhiteSpace(AccessKeyId)

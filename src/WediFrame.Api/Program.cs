@@ -99,4 +99,4 @@ foreach (var module in modules)
     module.MapEndpoints(apiV1);
 }
 
-app.Run();
+await app.RunAsync();
