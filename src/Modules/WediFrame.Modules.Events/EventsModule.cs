@@ -27,6 +27,7 @@ public sealed class EventsModule : IModule
             .ValidateOnStart();
 
         services.AddSingleton<IQrCodeService, QrCodeService>();
+        services.AddScoped<IGuestEventAccess, GuestEventAccess>();
 
         return services;
     }

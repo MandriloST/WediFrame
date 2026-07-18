@@ -2,7 +2,7 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-13 (v7)
+> **Zadnje ažurirano:** 2026-07-15 (v8)
 
 ---
 
@@ -39,6 +39,7 @@
 - Cover fotografija: max **20 MB**, tipovi **JPEG/PNG/WebP** (v7 — pretpostavka, lako promjenjivo u `CoverPhotoRules`).
 - Guest stranica vidi event samo u statusu **Active/UploadClosed**; Draft/Expired/Deleted → 404 (v7 — pretpostavka).
 - `uploadOpen` na guest endpointu je provizoran do M3 (kraj upload perioda ovisi o paketu): Active + danas ≥ T0.
+- Guest fotke: max **50 MB po datoteci**, tipovi JPEG/PNG/WebP/HEIC/HEIF/GIF, max 30 datoteka po presign requestu (v8 — pretpostavka; HEIC prihvaćamo jer ga iPhone generira, prikaz rješava thumbnail job u M2).
 
 ---
 
@@ -57,12 +58,12 @@
 
 - [x] Identity: registracija/prijava hosta (minimalno) — 2026-07-13: migracija `AddIdentityAndEvents` (20260707110645) commitana i na `main` i na `develop` ✔
 - [x] Events: kreiranje eventa (naslov, T0, draft), guest token, QR generiranje — 2026-07-13: kod + migracija na `main`/`develop` ✔
-- [~] Cover fotografija: upload (host) + prikaz na guest stranici — **kod isporučen 2026-07-13 (v7)**: R2 storage infrastruktura (`IObjectStorage` u Shared, `R2ObjectStorage` u Infrastructure, AWSSDK.S3 v4), `POST /events/{id}/cover` (presigned PUT) + `POST /events/{id}/cover/confirm` (HEAD verifikacija, zamjena starog covera), `GET /guest/{token}` (javni event info s cover URL-om); ostaje korisnik lokalno: R2 bucket + token + CORS (README) → `dotnet build` → smoke test (register → create → cover start → PUT na R2 → confirm → guest info) → commit. **Bez nove migracije** (CoverPhotoKey već postoji).
-- [ ] Media: presigned upload flow — single PUT za fotke
+- [x] Cover fotografija: upload (host) + prikaz na guest stranici — smoke test prošao 2026-07-15 (uz tri R2 lekcije: `AuthenticationRegion="auto"`, EU jurisdiction endpoint `.eu.`, PUT datoteka curlom jer VS .http ne podržava file body); dodano odbijanje praznih objekata na confirmu (`events.cover_empty`)
+- [~] Media: presigned upload flow — single PUT za fotke — **kod isporučen 2026-07-15 (v8)**: `MediaItem` entitet (shema `media`), `POST /guest/{token}/uploads` (batch presign, all-or-nothing validacija s per-item error kodovima), `POST /guest/{token}/uploads/{mediaId}/confirm` (HEAD verifikacija, stvarna veličina, Failed za prazne/prevelike), `IGuestEventAccess` javni ugovor Events modula; ostaje korisnik lokalno: `dotnet ef migrations add AddMediaItems` → `database update` → smoke test (koraci 9–12 u tools/smoke-test.http) → commit
 - [ ] Media: multipart upload za video (chunk retry, resume, cleanup nedovršenih)
 - [ ] Guest stranica `/e/{token}`: cover + naslov → upload button → upload UI s napretkom i statusima
 - [ ] Privacy notice + opcionalni unos imena gosta (HR/EN)
-- [ ] Backend enforcement: tip, veličina po datoteci, upload period aktivan
+- [~] Backend enforcement: tip, veličina po datoteci, upload period aktivan — za FOTKE gotovo u v8 (tip, ≤50 MB, `media.upload_closed` izvan perioda); za video stiže s multipart blokom
 - [ ] Test na stvarnim mobitelima: iOS Safari, Android Chrome, Instagram/WhatsApp webview
 - [ ] **Milestone test:** 20 datoteka (uklj. 1 velik video) s mobitela na lošoj mreži — sve stigne, status jasan
 
@@ -169,6 +170,11 @@
 | 2026-07-13 (v7) | Cover pravila: 20 MB max, JPEG/PNG/WebP (`CoverPhotoRules`) | Pretpostavka Claudea — dovoljno za mobilne fotke; vlasnik može korigirati |
 | 2026-07-13 (v7) | Guest vidljivost: samo Active/UploadClosed; token duljina sanity-check prije DB upita | Draft/istekli eventi ne smiju biti javno dohvatljivi; jeftin early-reject |
 
+| 2026-07-15 (v8) | R2 lekcije (potvrđene smoke testom): SigV4 regija mora biti `auto` (`AuthenticationRegion`), EU jurisdiction bucket koristi endpoint `{accountId}.eu.r2.cloudflarestorage.com` (novo polje `R2Options.Jurisdiction`, default `eu`), VS .http ne šalje file body → PUT curlom | AccessDenied debugging 2026-07-14; oboje bi ponovno ugrizlo na produkcijskom bucketu |
+| 2026-07-15 (v8) | Cross-module pristup: Media koristi **`IGuestEventAccess`** — javni ugovor Events modula (token → `GuestEventContext`), jednosmjerna referenca Media→Events | ARCHITECTURE §2: komunikacija kroz jasne interfejse; jedna istina za vidljivost i upload-open pravila |
+| 2026-07-15 (v8) | Guest fotke: 50 MB/datoteka, JPEG/PNG/WebP/HEIC/HEIF/GIF, ≤30 datoteka po requestu; batch validacija **all-or-nothing** s per-item ključevima (`items[3].sizeBytes`) | Pretpostavka Claudea (paketske kvote su M3); all-or-nothing = jednostavan ugovor, frontend pre-filtrira |
+| 2026-07-15 (v8) | Confirm sprema **stvarnu** veličinu s R2 (HEAD), prazan/prevelik objekt → briši + status Failed; kvote u M3 broje samo Confirmed | Deklarirana veličina je nepovjerljiva; 0-byte rupa nađena smoke testom na coveru |
+
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
@@ -179,3 +185,4 @@
 - **2026-07-07 (v5)** — Repo link dostavljen; pročitano stvarno stanje `develop` brancha (M0 potvrđen: .NET skeleton + `web/` Next.js skeleton). Isporučen **M1 Identity** (registracija/prijava hosta): entiteti `User` + `RefreshToken` (shema `identity`), `TokenService` (JWT HS256 + rotirajući refresh), endpointi `POST /api/v1/auth/register|login|refresh`, `GET /api/v1/auth/me`; JWT bearer validacija u API hostu; `DbContext` alias pattern za module. Kod NIJE kompajliran u sesiji (nema .NET SDK) — korisnik lokalno: build → `dotnet ef migrations add AddIdentityAuth` → `database update` → smoke test → commit. **Sljedeći korak:** potvrda builda + migracije; zatim **Events: kreiranje eventa (naslov, T0, draft) + guest token + QR**.
 - **2026-07-07 (v6)** — Provjereno stanje developa (Identity kod + csproj fix commitani; migracija AddIdentityAuth JOŠ NE postoji). Isporučen **M1 Events** (kreiranje eventa + guest token + QR): `Event` entitet (shema `events`, status lifecycle, DateOnly T0), endpointi create/list/detail/QR (PNG download + SVG za tisak), `GuestTokenGenerator`, `QrCodeService` (QRCoder 1.8.0), `ClaimsPrincipalExtensions` + `FrontendOptions` u Shared, `Frontend:GuestBaseUrl` config. Korisnik lokalno: build → **JEDNA migracija `AddIdentityAndEvents`** (pokriva identity + events tablice) → `database update` → smoke test (register → create event → QR) → commit na develop. **Sljedeći korak:** potvrda; zatim Cloudflare R2 setup (korisnik) + **Media: presigned upload flow — single PUT za fotke** ili **Cover fotografija** (oboje treba R2).
 - **2026-07-13 (v7)** — Provjereno stanje repoa: `main` = `develop`, Identity + Events + migracija `AddIdentityAndEvents` commitani (M1 stavke 1–2 označene [x]). Isporučen **cover fotografija flow + R2 infrastruktura**: `IObjectStorage` (Shared), `R2Options`, `R2ObjectStorage` + DI ekstenzija (Infrastructure, AWSSDK.S3 4.0.7.12), `CoverPhotoRules`, cover endpointi (presigned PUT + confirm s HEAD verifikacijom i zamjenom starog covera), `GET /guest/{token}` javni event info (naslov, cover URL, uploadOpen), R2 config sekcije + README upute (bucket EU, API token, CORS, user-secrets). Bez nove migracije. Kod NIJE kompajliran u sesiji — korisnik lokalno: R2 setup → build → smoke test → commit na develop. **Sljedeći korak:** potvrda cover flowa; zatim **Media: presigned upload flow — single PUT za fotke** (guest upload, enforcement tipa/veličine/perioda).
+- **2026-07-15 (v8)** — Cover flow potvrđen end-to-end (nakon tri R2 fixa: auto regija, `.eu.` endpoint, curl za PUT — sve u Decision Logu). Isporučen **guest photo upload (single PUT)**: Media modul dobio `MediaItem` + `PhotoRules` + EF konfiguraciju + guest endpointe (batch presign + confirm), Events dobio `IGuestEventAccess` (GuestEndpoints refaktoriran na njega), cover confirm odbija prazne objekte, Infrastructure/AppDbContext prošireni za Media, novi `tools/smoke-test.http` (12 koraka, uklj. negativne). Korisnik lokalno: `dotnet build` → `dotnet ef migrations add AddMediaItems --project src/WediFrame.Infrastructure --startup-project src/WediFrame.Api` → `database update` → smoke test 9–12 → commit na develop. **Sljedeći korak:** multipart upload za video (chunk retry, resume, cleanup nedovršenih) ILI početak guest stranice u Next.js — korisnik bira.

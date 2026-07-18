@@ -248,6 +248,16 @@ public static class EventEndpoints
             });
         }
 
+        if (info.SizeBytes == 0)
+        {
+            // Empty object = broken upload (e.g. a client that sent no body).
+            await storage.DeleteAsync(key, ct);
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["key"] = ["events.cover_empty"],
+            });
+        }
+
         if (info.SizeBytes > CoverPhotoRules.MaxBytes)
         {
             // Uploaded object bypassed the declared size — remove it and reject.

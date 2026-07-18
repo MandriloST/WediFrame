@@ -1,0 +1,125 @@
+### WediFrame — smoke test: auth -> event -> cover -> guest -> media upload
+### Kako koristiti (Visual Studio 2022 ili VS Code + REST Client ekstenzija):
+###   - Izvršavaj requeste redom ("Send request" iznad svakog).
+###   - Vrijednosti iz odgovora kopiraj u varijable ispod.
+###   - VAŽNO: korake 5 i 10 (PUT datoteke na R2) radi CURLOM iz PowerShella —
+###     VS-ov .http handler NE podržava file body ("< file" bi poslao tekst,
+###     naučeno 2026-07-14: objekt od 13 B umjesto slike).
+
+@baseUrl = http://localhost:5080/api/v1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ3ZWRpZnJhbWUiLCJpc3MiOiJ3ZWRpZnJhbWUiLCJleHAiOjE3ODQzODQ4MjgsImlhdCI6MTc4NDM4MzAyOCwibmJmIjoxNzg0MzgzMDI4LCJzdWIiOiIxMjZiYjlmYy05NDY4LTRmN2UtOWIwNy0yNjI0NGIzMzUwY2IiLCJlbWFpbCI6InRlc3RAd2VkaWZyYW1lLmhyIiwicm9sZSI6Ikhvc3QifQ.Bd1QC8e-5kMHo2FWjE4xBs3m_aOT9wYwGxBiP2UMORI
+@eventId = 03769f9f-e07d-4b7e-9561-de52d777de83
+@guestToken = IXRqnmCbTf7k6D25J4v-lOftKsv7EyupFNiWqHFC6Ng
+@coverKey = events/03769f9f-e07d-4b7e-9561-de52d777de83/cover/0497a2c764f2431cbef0d6e023c6c766.jpg
+@mediaId = OVDJE_ZALIJEPI_MEDIA_ID
+
+### 1) Registracija hosta (ako user postoji -> auth.email_taken -> koristi korak 2)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@wediframe.hr",
+  "password": "Test-lozinka-123",
+  "language": "hr"
+}
+
+### 2) Login (accessToken -> @accessToken gore)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@wediframe.hr",
+  "password": "Test-lozinka-123"
+}
+
+### 3) Kreiraj event ("id" -> @eventId, "guestToken" -> @guestToken)
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "Iva i Ivan, 23.6.2027.",
+  "uploadStartDate": "2026-07-13",
+  "type": "wedding"
+}
+
+### 4) Cover — presigned PUT URL ("key" -> @coverKey; "uploadUrl" ide u curl u koraku 5)
+POST {{baseUrl}}/events/{{eventId}}/cover
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "contentType": "image/jpeg",
+  "sizeBytes": 500000
+}
+
+### 5) PUT slike na R2 — CURL iz PowerShella (URL u navodnicima zbog &):
+###
+###    curl.exe -X PUT "<uploadUrl>" -H "Content-Type: image/jpeg" --data-binary "@C:\putanja\do\cover.jpg"
+###
+###    Content-Type TOČNO isti kao u koraku 4 (potpisan je u URL).
+###    Očekivano: prazan odgovor bez greške. Hostname mora sadržavati ".eu."
+###    (EU jurisdiction bucket). URL vrijedi 15 min — ne odgađaj.
+
+### 6) Confirm covera — očekivano 200 + coverPhotoKey/coverPhotoUrl popunjeni.
+###    Ako je objekt prazan (0 B) -> 400 events.cover_empty (fix od 2026-07-15).
+POST {{baseUrl}}/events/{{eventId}}/cover/confirm
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "key": "{{coverKey}}"
+}
+
+### 7) Host detail — coverPhotoUrl otvori u browseru (pazi: kopiraj bez \u0026,
+###    zamijeni s & ako se pojavi; URL vrijedi 1 h)
+GET {{baseUrl}}/events/{{eventId}}
+Authorization: Bearer {{accessToken}}
+
+### 8) Guest info — 404 dok je event Draft (ispravno!). Aktiviraj SQL-om pa ponovi:
+###    UPDATE events.events SET "Status" = 'Active' WHERE "Id" = '<eventId>';
+###    (POST /events/{id}/activate stiže kasnije po backlogu.)
+###    Očekivano nakon aktivacije: 200, naslov + coverPhotoUrl + uploadOpen=true.
+GET {{baseUrl}}/guest/{{guestToken}}
+
+### ======================= GUEST MEDIA UPLOAD (fotke) =======================
+### Preduvjet: event Active (korak 8) i uploadStartDate <= danas.
+
+### 9) Guest traži presigned URL-ove za batch fotki (bez Authorization — token je ključ)
+###    Iz odgovora: items[0].mediaId -> @mediaId; items[0].uploadUrl ide u curl (korak 10)
+POST {{baseUrl}}/guest/{{guestToken}}/uploads
+Content-Type: application/json
+
+{
+  "guestName": "Ujak Pero",
+  "items": [
+    { "contentType": "image/jpeg", "sizeBytes": 500000, "fileName": "IMG_0001.jpg" }
+  ]
+}
+
+### 10) PUT fotke na R2 — opet curl (kao korak 5):
+###
+###     curl.exe -X PUT "<items[0].uploadUrl>" -H "Content-Type: image/jpeg" --data-binary "@C:\putanja\do\cover.jpg"
+
+### 11) Confirm — očekivano 200: uploadStatus=Confirmed, sizeBytes = STVARNA veličina s R2
+POST {{baseUrl}}/guest/{{guestToken}}/uploads/{{mediaId}}/confirm
+
+### ======================= NEGATIVNI TESTOVI (očekivano 400) ================
+
+### 12a) Video tip -> media.video_not_supported_yet (multipart stiže u sljedećem bloku)
+POST {{baseUrl}}/guest/{{guestToken}}/uploads
+Content-Type: application/json
+
+{
+  "items": [ { "contentType": "video/mp4", "sizeBytes": 1000000 } ]
+}
+
+### 12b) Prevelika fotka -> media.file_too_large (limit 50 MB po fotki)
+POST {{baseUrl}}/guest/{{guestToken}}/uploads
+Content-Type: application/json
+
+{
+  "items": [ { "contentType": "image/jpeg", "sizeBytes": 99999999999 } ]
+}
+
+### 12c) Confirm bez PUT-a -> media.not_uploaded (item ostaje Pending, može retry)
