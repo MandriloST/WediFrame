@@ -1,7 +1,8 @@
 /**
  * Guest-facing API client. The token is the only credential (no accounts).
- * Server components call `getGuestEvent`; the upload flow runs in the browser.
- * Error codes ("media.file_too_large") map to i18n keys — never shown raw.
+ * Server components call `getGuestEvent`; the upload flow and gallery run in
+ * the browser. Error codes ("media.file_too_large") map to i18n keys — never
+ * shown raw.
  */
 
 export const API_BASE =
@@ -36,6 +37,21 @@ export type ConfirmResponse = {
   sizeBytes: number;
 };
 
+export type GalleryItem = {
+  mediaId: string;
+  type: string; // "Photo" | "Video"
+  url: string; // presigned GET of the original
+  thumbnailUrl: string | null; // set once the thumbnail job runs (next M2 block)
+  contentType: string;
+  guestName: string | null;
+  createdAt: string;
+};
+
+export type GalleryPage = {
+  items: GalleryItem[];
+  nextOffset: number | null;
+};
+
 /** Mirrors PhotoRules on the backend — the backend stays the source of truth. */
 export const PHOTO_MAX_BYTES = 50 * 1024 * 1024;
 export const PHOTO_ALLOWED_TYPES = new Set([
@@ -47,6 +63,19 @@ export const PHOTO_ALLOWED_TYPES = new Set([
   "image/gif",
 ]);
 export const MAX_ITEMS_PER_REQUEST = 30;
+export const GALLERY_PAGE_SIZE = 24;
+
+/**
+ * Types a browser can render in an <img>. HEIC/HEIF are accepted on upload
+ * (iPhones produce them) but cannot be displayed until the thumbnail job
+ * converts them — the gallery shows a placeholder tile for those meanwhile.
+ */
+export const BROWSER_DISPLAYABLE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 export async function getGuestEvent(
   token: string,
@@ -57,6 +86,19 @@ export async function getGuestEvent(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`guest info failed: ${res.status}`);
   return (await res.json()) as GuestEventInfo;
+}
+
+export async function getGuestMedia(
+  token: string,
+  offset = 0,
+  limit = GALLERY_PAGE_SIZE,
+): Promise<GalleryPage> {
+  const res = await fetch(
+    `${API_BASE}/guest/${encodeURIComponent(token)}/media?offset=${offset}&limit=${limit}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`gallery failed: ${res.status}`);
+  return (await res.json()) as GalleryPage;
 }
 
 export async function startUploads(

@@ -22,6 +22,13 @@ type QueueItem = {
   errorKey: string | null; // i18n key under guest.errors
 };
 
+/** Fired the moment an item is confirmed, so the gallery can show it instantly. */
+export type ConfirmedUpload = {
+  mediaId: string;
+  file: File;
+  contentType: string;
+};
+
 const CONCURRENCY = 3;
 const NAME_KEY = "wediframe.guestName";
 const ACK_KEY_PREFIX = "wediframe.privacyAck:";
@@ -47,9 +54,11 @@ function resolveContentType(file: File): string | null {
 export function UploadSection({
   token,
   uploadOpen,
+  onConfirmed,
 }: {
   token: string;
   uploadOpen: boolean;
+  onConfirmed?: (item: ConfirmedUpload) => void;
 }) {
   const t = useTranslations("guest");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +67,12 @@ export function UploadSection({
   const [acknowledged, setAcknowledged] = useState(false);
   const [showNotice, setShowNotice] = useState(false);
   const activeCount = useRef(0);
+
+  // Keep the latest callback in a ref so uploadOne stays stable across renders.
+  const onConfirmedRef = useRef(onConfirmed);
+  useEffect(() => {
+    onConfirmedRef.current = onConfirmed;
+  }, [onConfirmed]);
 
   useEffect(() => {
     setGuestName(localStorage.getItem(NAME_KEY) ?? "");
@@ -93,8 +108,14 @@ export function UploadSection({
           (fraction) => patch(item.id, { progress: fraction }),
         );
         patch(item.id, { status: "confirming", progress: 1 });
-        await confirmUpload(token, presigned.mediaId);
+        const confirmed = await confirmUpload(token, presigned.mediaId);
         patch(item.id, { status: "done" });
+        // Instant gallery preview from the local file — no round-trip download.
+        onConfirmedRef.current?.({
+          mediaId: confirmed.mediaId,
+          file: item.file,
+          contentType: item.contentType,
+        });
       } catch {
         patch(item.id, { status: "failed", errorKey: "uploadFailed" });
       }

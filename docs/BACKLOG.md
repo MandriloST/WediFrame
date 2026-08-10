@@ -2,7 +2,7 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-07-18 (v9)
+> **Zadnje ažurirano:** 2026-08-10 (v10)
 
 ---
 
@@ -40,6 +40,7 @@
 - Guest stranica vidi event samo u statusu **Active/UploadClosed**; Draft/Expired/Deleted → 404 (v7 — pretpostavka).
 - `uploadOpen` na guest endpointu je provizoran do M3 (kraj upload perioda ovisi o paketu): Active + danas ≥ T0.
 - Guest fotke: max **50 MB po datoteci**, tipovi JPEG/PNG/WebP/HEIC/HEIF/GIF, max 30 datoteka po presign requestu (v8 — pretpostavka; HEIC prihvaćamo jer ga iPhone generira, prikaz rješava thumbnail job u M2).
+- Galerija: stranica **24 stavke**, dohvat kroz "Učitaj još"; do thumbnail joba grid lazy-loada **originale** (na svadbenom wifiju skupo — thumbnaili su sljedeći korak M2). HEIC/HEIF bez thumbnaila → **placeholder pločica** (browser ih ne renderira) (v10 — pretpostavka).
 
 ---
 
@@ -69,8 +70,8 @@
 
 ## M2 — Galerija
 
-- [ ] Guest galerija na `/e/{token}` (ispod upload buttona): grid thumbnailova, lazy load, lightbox
-- [ ] Thumbnail generiranje za fotke (background job)
+- [~] Guest galerija na `/e/{token}` (ispod upload buttona): grid thumbnailova, lazy load, lightbox — **kod isporučen 2026-08-10 (v10)**: backend `GET /guest/{token}/media` (offset paginacija, deterministički order `(CreatedAt desc, ObjectKey desc)`, presigned GET po stranici, samo Confirmed+Visible+ne-obrisano); frontend `Gallery` (grid 3 stupca, lazy `<img>`, lightbox s prev/next/Esc, "Učitaj još"), `GuestExperience` wrapper (instant preview iz lokalnog blob-a na confirm, dedupe po mediaId), HR/EN poruke, `.env.example` dodan. **Bez nove migracije** (MediaItem već postoji). Ostaje: thumbnaili (dolje) i mobilni test. Do tada grid lazy-loada originale.
+- [ ] Thumbnail generiranje za fotke (background job) — **SLJEDEĆI KORAK M2**: bez njega grid vuče originale (skupo na wifiju) i HEIC/HEIF su placeholderi; job puni `MediaItem.ThumbnailKey`, `thumbnailUrl` se onda automatski koristi u galeriji
 - [ ] Video: poster frame ako izvedivo bez transcodinga, inače generička pločica; reprodukcija originala (range requests) — provjeriti HEVC/H.264 pokrivenost u browserima
 - [ ] Host galerija: isto + hide/delete
 - [ ] Download pojedinačne datoteke; ZIP export kao background job
@@ -179,6 +180,12 @@
 | 2026-07-18 (v9) | Guest stranica: cover kao `<img>` (ne next/image) — presigned URL-ovi su jedinstveni po requestu pa optimizer cache ionako uvijek promašuje; Fraunces (next/font) SAMO za naslov, UI na system stacku | Performanse u IG/WhatsApp webviewu na lošem wifiju; jedan mali font = cijeli webfont budžet |
 | 2026-07-18 (v9) | Upload UX: konkurentnost 3, XHR (fetch nema upload progress), retry = novi presign po datoteci; ime gosta + privacy ack u localStorage | Progress je cijeli UX na svadbenom wifiju; retry sa svježim URL-om izbjegava istek potpisa |
 
+| 2026-08-10 (v10) | Galerija: **offset paginacija** (`?offset&limit`, 24/str.) uz order `(CreatedAt desc, ObjectKey desc)`, klijent dedupira po `mediaId` | Cijeli batch dijeli isti `CreatedAt` (jedan `now` u presignu) pa keyset samo po vremenu lomi; `ObjectKey` je unique tie-break; izbjegnuta `Guid` nejednakost (Npgsql je ne prevodi); dedupe na klijentu upija pomak granice zbog paralelnih uploada |
+| 2026-08-10 (v10) | Thumbnaili **odgođeni**: galerija do joba lazy-loada originale; `thumbnailUrl` null → grid koristi original; HEIC/HEIF bez thumbnaila → placeholder pločica | Mali korak: read-side galerije radi odmah, bez slikovne obrade/background workera; thumbnail job je idući M2 komad i samo popuni `ThumbnailKey` |
+| 2026-08-10 (v10) | **Instant preview**: na `confirm` fotka odmah uđe u grid iz lokalnog `objectURL`-a (revoke na unmount), server kopija se dedupira po `mediaId` | Nula latencije i nula ponovnog downloada svježe poslane fotke; osjećaj "odmah je tu" na dan eventa |
+| 2026-08-10 (v10) | Lightbox **bez biblioteke** (vlastiti overlay: prev/next, Esc, klik na pozadinu) | Jedan mali ovisnostima-čist ekran; webfont/JS budžet ostaje nizak za webviewove |
+| 2026-08-10 (v10) | `web/.env.example` dodan (nedostajao u repou iako ga je v9 dnevnik naveo) | Bez njega novi klon nema uzorak za `NEXT_PUBLIC_API_URL`; `.gitignore` ga već propušta (`!.env.example`) |
+
 ## Dnevnik sesija
 
 - **2026-07-04** — Inicijalna analiza, kreirani PROJECT.md / ARCHITECTURE.md / BACKLOG.md.
@@ -191,3 +198,4 @@
 - **2026-07-13 (v7)** — Provjereno stanje repoa: `main` = `develop`, Identity + Events + migracija `AddIdentityAndEvents` commitani (M1 stavke 1–2 označene [x]). Isporučen **cover fotografija flow + R2 infrastruktura**: `IObjectStorage` (Shared), `R2Options`, `R2ObjectStorage` + DI ekstenzija (Infrastructure, AWSSDK.S3 4.0.7.12), `CoverPhotoRules`, cover endpointi (presigned PUT + confirm s HEAD verifikacijom i zamjenom starog covera), `GET /guest/{token}` javni event info (naslov, cover URL, uploadOpen), R2 config sekcije + README upute (bucket EU, API token, CORS, user-secrets). Bez nove migracije. Kod NIJE kompajliran u sesiji — korisnik lokalno: R2 setup → build → smoke test → commit na develop. **Sljedeći korak:** potvrda cover flowa; zatim **Media: presigned upload flow — single PUT za fotke** (guest upload, enforcement tipa/veličine/perioda).
 - **2026-07-15 (v8)** — Cover flow potvrđen end-to-end (nakon tri R2 fixa: auto regija, `.eu.` endpoint, curl za PUT — sve u Decision Logu). Isporučen **guest photo upload (single PUT)**: Media modul dobio `MediaItem` + `PhotoRules` + EF konfiguraciju + guest endpointe (batch presign + confirm), Events dobio `IGuestEventAccess` (GuestEndpoints refaktoriran na njega), cover confirm odbija prazne objekte, Infrastructure/AppDbContext prošireni za Media, novi `tools/smoke-test.http` (12 koraka, uklj. negativne). Korisnik lokalno: `dotnet build` → `dotnet ef migrations add AddMediaItems --project src/WediFrame.Infrastructure --startup-project src/WediFrame.Api` → `database update` → smoke test 9–12 → commit na develop. **Sljedeći korak:** multipart upload za video (chunk retry, resume, cleanup nedovršenih) ILI početak guest stranice u Next.js — korisnik bira.
 - **2026-07-18 (v9)** — Isporučena **guest stranica** (srce proizvoda, prva verzija bez galerije): hero s coverom + kartica-potpis s naslovom (Fraunces), upload flow fotki end-to-end iz browsera (presign → XHR PUT s progressom → confirm), privacy notice + opcionalno ime na prvi klik, HR/EN poruke, `.env.example`; API dobio CORS. TypeScript provjera čista; `next build` u Claude okruženju pada samo na dohvatu Google Fonts (mrežna blokada sandboxa) — kod korisnika radi. ⚠️ **Migracija `AddMediaItems` još nije u repou** — obavezno prije testa. Korisnik: migracija → `web/.env.local` → `npm run dev` → otvoriti `/e/{token}` aktivnog eventa → upload s mobitela. **Sljedeći korak:** M2 guest galerija thumbnailova na istoj stranici ILI multipart video — nakon što stranica proradi na stvarnom mobitelu.
+- **2026-08-10 (v10)** — Pročitano stvarno stanje repoa: `develop` je 2 commita ispred `main` (`MediaItem`, `wedifram v9`); migracija `AddMediaItems` **jest** u repou (commit `wedifram v9`, ⚠️ iz v9 riješen). Isporučena **guest galerija** (M2, prvi komad): backend `GET /guest/{token}/media` (offset paginacija, order `(CreatedAt desc, ObjectKey desc)`, presigned GET po stranici) + gallery contracts; frontend `Gallery` (grid 3 stupca, lazy `<img>`, lightbox prev/next/Esc, "Učitaj još"), `GuestExperience` wrapper (instant preview iz blob-a + dedupe po mediaId), `UploadSection` dobio `onConfirmed` callback, `page.tsx` renderira `GuestExperience`, HR/EN `gallery` poruke, dodan `web/.env.example`. **Bez nove migracije.** TypeScript (`tsc --noEmit`) i ESLint na novim datotekama **čisti** u sesiji; `next build` opet pada samo na Google Fonts (sandbox) — kod korisnika radi. ⚠️ Zatečene lint greške u `UploadSection.tsx` (set-state-in-effect + `<a href="/privacy">`) **postoje od v9** i ne blokiraju `next build` — čišćenje u zasebnom prolazu. Korisnik: `git pull` (develop) → `dotnet build` → `dotnet run --project src/WediFrame.Api` → `web/.env.local` iz `.env.example` → `npm run dev` → otvoriti `/e/{token}` aktivnog eventa, poslati par fotki, provjeriti da uđu u galeriju i lightbox → commit na develop; kad želiš, merge develop → main (zaostaje 2 commita + ovaj). **Sljedeći korak:** thumbnail background job (M2) — da grid prestane vući originale i da HEIC dobije prikaz; zatim host galerija (hide/delete) ili multipart video.

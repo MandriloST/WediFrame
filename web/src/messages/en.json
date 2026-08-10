@@ -35,6 +35,18 @@
       "uploadFailed": "Sending failed — check your connection and try again.",
       "typeUnsupported": "This file type is not supported.",
       "fileTooLarge": "The photo is larger than 50 MB."
+    },
+    "gallery": {
+      "heading": "Gallery",
+      "count": "{count, plural, one {# memory} other {# memories}}",
+      "empty": "No photos shared yet. Be the first!",
+      "loadMore": "Load more",
+      "loadError": "Couldn't load the gallery.",
+      "retry": "Try again",
+      "close": "Close",
+      "prev": "Previous",
+      "next": "Next",
+      "unsupported": "A preview of this photo is coming soon."
     }
   }
 }

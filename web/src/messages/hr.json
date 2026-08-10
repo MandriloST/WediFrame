@@ -35,6 +35,18 @@
       "uploadFailed": "Slanje nije uspjelo — provjerite vezu i pokušajte ponovno.",
       "typeUnsupported": "Ovaj tip datoteke nije podržan.",
       "fileTooLarge": "Fotografija je veća od 50 MB."
+    },
+    "gallery": {
+      "heading": "Galerija",
+      "count": "{count, plural, one {# uspomena} few {# uspomene} other {# uspomena}}",
+      "empty": "Još nema podijeljenih fotografija. Budite prvi!",
+      "loadMore": "Učitaj još",
+      "loadError": "Galeriju nije moguće učitati.",
+      "retry": "Pokušaj ponovno",
+      "close": "Zatvori",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
+      "unsupported": "Pregled ove fotografije stiže uskoro."
     }
   }
 }

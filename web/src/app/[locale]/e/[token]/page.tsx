@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Fraunces } from "next/font/google";
 import { getGuestEvent } from "@/lib/guestApi";
-import { UploadSection } from "@/components/guest/UploadSection";
+import { GuestExperience } from "@/components/guest/GuestExperience";
 
 // Display face for the couple's title ONLY — UI text stays on the system stack
 // on purpose: guest pages open inside Instagram/WhatsApp webviews on venue wifi,
@@ -75,8 +75,8 @@ export default async function GuestPage({ params }: Props) {
         </div>
       </header>
 
-      {/* Upload: the page's single job, one thumb, in sunlight. */}
-      <UploadSection token={token} uploadOpen={event.uploadOpen} />
+      {/* Upload (the page's single job) + the gallery every guest can see. */}
+      <GuestExperience token={token} uploadOpen={event.uploadOpen} />
 
       <footer className="mt-auto px-5 pb-6 pt-10 text-center text-xs text-[#A8A29E]">
         WediFrame · Powered by EverFrame

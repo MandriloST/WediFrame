@@ -11,7 +11,8 @@ namespace WediFrame.Modules.Media.Endpoints;
 
 /// <summary>
 /// Guest upload flow (the heart of the product) — NO authentication, the event
-/// token is the only key. M1 scope: photos via single presigned PUT.
+/// token is the only key. M1 scope: photos via single presigned PUT. M2 adds
+/// the read side: the gallery every guest with the link can see.
 /// Video multipart is the next block; package quotas (photo count, total bytes)
 /// arrive with Billing (M3); rate limiting is an M5 item.
 /// </summary>
@@ -20,11 +21,18 @@ public static class GuestMediaEndpoints
     /// <summary>Generous expiry — wedding wifi is slow and guests pick many files at once.</summary>
     private static readonly TimeSpan UploadUrlExpiry = TimeSpan.FromMinutes(30);
 
+    /// <summary>Display URLs live long enough for a scroll session; the grid re-fetches per page.</summary>
+    private static readonly TimeSpan ViewUrlExpiry = TimeSpan.FromHours(1);
+
+    private const int DefaultPageSize = 24;
+    private const int MaxPageSize = 48;
+
     public static IEndpointRouteBuilder MapGuestMediaEndpoints(this IEndpointRouteBuilder endpoints)
     {
         // Deliberately outside RequireAuthorization — token IS the authorization.
         endpoints.MapPost("/guest/{token}/uploads", StartUploadsAsync);
         endpoints.MapPost("/guest/{token}/uploads/{mediaId:guid}/confirm", ConfirmUploadAsync);
+        endpoints.MapGet("/guest/{token}/media", ListMediaAsync);
 
         return endpoints;
     }
@@ -197,6 +205,74 @@ public static class GuestMediaEndpoints
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(new GuestConfirmResponse(item.Id, item.UploadStatus.ToString(), item.SizeBytes));
+    }
+
+    /// <summary>
+    /// The gallery: every guest with the link sees every confirmed, visible
+    /// photo (Decision Log 2026-07-06). Offset pagination with a deterministic
+    /// order — a batch shares one CreatedAt, so ObjectKey (unique) breaks ties.
+    /// Presigned GET URLs are minted per page (short-lived, private bucket).
+    /// </summary>
+    private static async Task<IResult> ListMediaAsync(
+        string token,
+        IGuestEventAccess guestEvents,
+        DbContext db,
+        IObjectStorage storage,
+        int? offset,
+        int? limit,
+        CancellationToken ct)
+    {
+        var ev = await guestEvents.FindByTokenAsync(token, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        var skip = Math.Max(0, offset ?? 0);
+        var take = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+
+        var rows = await db.Set<MediaItem>()
+            .Where(m => m.EventId == ev.EventId
+                && m.UploadStatus == MediaUploadStatus.Confirmed
+                && m.Visibility == MediaVisibility.Visible
+                && m.SoftDeletedAt == null)
+            .OrderByDescending(m => m.CreatedAt)
+            .ThenByDescending(m => m.ObjectKey)
+            .Skip(skip)
+            .Take(take)
+            .Select(m => new
+            {
+                m.Id,
+                m.Type,
+                m.ObjectKey,
+                m.ThumbnailKey,
+                m.ContentType,
+                m.GuestName,
+                m.CreatedAt,
+            })
+            .ToListAsync(ct);
+
+        var items = new List<GuestGalleryItem>(rows.Count);
+        foreach (var r in rows)
+        {
+            var url = (await storage.PresignGetAsync(r.ObjectKey, ViewUrlExpiry, ct)).ToString();
+            var thumbnailUrl = r.ThumbnailKey is null
+                ? null
+                : (await storage.PresignGetAsync(r.ThumbnailKey, ViewUrlExpiry, ct)).ToString();
+
+            items.Add(new GuestGalleryItem(
+                r.Id,
+                r.Type.ToString(),
+                url,
+                thumbnailUrl,
+                r.ContentType,
+                r.GuestName,
+                r.CreatedAt));
+        }
+
+        var nextOffset = rows.Count == take ? skip + take : (int?)null;
+
+        return Results.Ok(new GuestGalleryResponse(items, nextOffset));
     }
 
     private static string? Truncate(string? value, int max)

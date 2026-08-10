@@ -31,3 +31,31 @@ public sealed record GuestConfirmResponse(
     Guid MediaId,
     string UploadStatus,
     long SizeBytes);
+
+// --- Gallery (M2) ------------------------------------------------------------
+
+/// <summary>
+/// One page of the guest gallery. Offset pagination with a deterministic order
+/// (CreatedAt desc, ObjectKey desc): a batch of photos shares one CreatedAt, so
+/// ObjectKey (unique) is the tie-break. The frontend also dedupes by MediaId,
+/// which absorbs any boundary shift caused by concurrent uploads mid-scroll.
+/// </summary>
+public sealed record GuestGalleryResponse(
+    List<GuestGalleryItem> Items,
+    int? NextOffset);
+
+/// <summary>
+/// A confirmed, visible item for display. <see cref="Url"/> is a presigned GET
+/// of the original; <see cref="ThumbnailUrl"/> is set once the thumbnail job
+/// (next M2 block) runs — until then it is null and the grid lazy-loads the
+/// original. HEIC/HEIF have no browser rendering and no thumbnail yet, so the
+/// frontend shows a placeholder tile for them.
+/// </summary>
+public sealed record GuestGalleryItem(
+    Guid MediaId,
+    string Type,
+    string Url,
+    string? ThumbnailUrl,
+    string ContentType,
+    string? GuestName,
+    DateTimeOffset CreatedAt);
