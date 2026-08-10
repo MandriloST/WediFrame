@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WediFrame.Modules.Media.Endpoints;
 using WediFrame.Shared.Modules;
 
 namespace WediFrame.Modules.Media;
@@ -19,5 +20,5 @@ public sealed class MediaModule : IModule
         => services;
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
-        => endpoints;
+        => endpoints.MapGuestMediaEndpoints();
 }

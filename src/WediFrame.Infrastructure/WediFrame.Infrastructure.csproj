@@ -12,5 +12,6 @@
          base DbContext from DI (aliased to AppDbContext in Program.cs). -->
     <ProjectReference Include="..\Modules\WediFrame.Modules.Identity\WediFrame.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\WediFrame.Modules.Events\WediFrame.Modules.Events.csproj" />
+    <ProjectReference Include="..\Modules\WediFrame.Modules.Media\WediFrame.Modules.Media.csproj" />
   </ItemGroup>
 </Project>

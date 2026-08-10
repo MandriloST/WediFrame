@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Npgsql EF Core provider povlači Microsoft.EntityFrameworkCore.Relational
+         (ToTable/HasConversion i ostale relacijske ekstenzije) — isti obrazac
+         kao Identity i Events moduli. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
+    <!-- Media consumes the Events module's public contract (IGuestEventAccess)
+         to resolve guest tokens — one-way reference, no back edge. -->
+    <ProjectReference Include="..\WediFrame.Modules.Events\WediFrame.Modules.Events.csproj" />
   </ItemGroup>
 </Project>

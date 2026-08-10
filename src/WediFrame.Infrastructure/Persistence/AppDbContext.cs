@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WediFrame.Modules.Events;
 using WediFrame.Modules.Identity;
+using WediFrame.Modules.Media;
 using WediFrame.Shared.Audit;
 
 namespace WediFrame.Infrastructure.Persistence;
@@ -24,5 +25,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         // Module entities — one line per module as they gain entities (M1+).
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityModule).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsModule).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(MediaModule).Assembly);
     }
 }

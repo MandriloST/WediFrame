@@ -17,5 +17,36 @@
   "meta": {
     "title": "WediFrame — wedding photos and videos in one place",
     "description": "A private gallery for your wedding. Guests share photos and videos with no app and no sign-up — they just scan a QR code."
+  },
+  "guest": {
+    "eyebrow": "Share your memories",
+    "addPhotos": "Add photos",
+    "videoComingSoon": "Video upload is coming soon",
+    "uploadClosed": "Uploads are closed — thank you to everyone who shared! The gallery stays available.",
+    "privacyNotice": "Photos you send will be visible to all guests with this event link and stored until the gallery expires. We use them for nothing else.",
+    "privacyLink": "Privacy policy",
+    "namePlaceholder": "Your name (optional)",
+    "continue": "Continue",
+    "statusLine": "{done} sent · {busy} waiting · {failed} failed",
+    "itemDone": "✓",
+    "itemWaiting": "…",
+    "retry": "Try again",
+    "errors": {
+      "uploadFailed": "Sending failed — check your connection and try again.",
+      "typeUnsupported": "This file type is not supported.",
+      "fileTooLarge": "The photo is larger than 50 MB."
+    },
+    "gallery": {
+      "heading": "Gallery",
+      "count": "{count, plural, one {# memory} other {# memories}}",
+      "empty": "No photos shared yet. Be the first!",
+      "loadMore": "Load more",
+      "loadError": "Couldn't load the gallery.",
+      "retry": "Try again",
+      "close": "Close",
+      "prev": "Previous",
+      "next": "Next",
+      "unsupported": "A preview of this photo is coming soon."
+    }
   }
 }
