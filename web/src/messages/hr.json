@@ -17,5 +17,24 @@
   "meta": {
     "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",
     "description": "Privatna galerija za vaše vjenčanje. Gosti dijele fotografije i video bez aplikacije i registracije — samo skeniraju QR kod."
+  },
+  "guest": {
+    "eyebrow": "Podijelite uspomene",
+    "addPhotos": "Dodaj fotografije",
+    "videoComingSoon": "Upload videa stiže uskoro",
+    "uploadClosed": "Upload je završen — hvala svima koji su podijelili uspomene! Galerija ostaje dostupna.",
+    "privacyNotice": "Fotografije koje pošaljete bit će vidljive svim gostima s linkom na ovaj event i pohranjene do isteka trajanja galerije. Ne koristimo ih ni za što drugo.",
+    "privacyLink": "Pravila privatnosti",
+    "namePlaceholder": "Vaše ime (nije obavezno)",
+    "continue": "Nastavi",
+    "statusLine": "{done} poslano · {busy} čeka · {failed} nije uspjelo",
+    "itemDone": "✓",
+    "itemWaiting": "…",
+    "retry": "Pokušaj ponovno",
+    "errors": {
+      "uploadFailed": "Slanje nije uspjelo — provjerite vezu i pokušajte ponovno.",
+      "typeUnsupported": "Ovaj tip datoteke nije podržan.",
+      "fileTooLarge": "Fotografija je veća od 50 MB."
+    }
   }
 }

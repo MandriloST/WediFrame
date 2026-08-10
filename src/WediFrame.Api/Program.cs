@@ -50,6 +50,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
+// CORS: the Next.js frontend calls the API from the browser (guest page, dashboard).
+// Origins come from Frontend:AllowedOrigins (Frontend__AllowedOrigins__0 on Railway).
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+    .WithOrigins(builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? [])
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
 // --- Modules (explicit list — order matters only for readability) ------------
 IModule[] modules =
 [
@@ -76,6 +83,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

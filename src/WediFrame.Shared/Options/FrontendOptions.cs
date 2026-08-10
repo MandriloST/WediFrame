@@ -15,5 +15,11 @@ public sealed class FrontendOptions
     /// </summary>
     public string GuestBaseUrl { get; set; } = "";
 
+    /// <summary>
+    /// Origins allowed to call the API from a browser (CORS).
+    /// Dev: ["http://localhost:3000"] · Prod: ["https://wediframe.hr"].
+    /// </summary>
+    public string[] AllowedOrigins { get; set; } = [];
+
     public string BuildGuestUrl(string guestToken) => GuestBaseUrl + guestToken;
 }
