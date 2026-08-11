@@ -30,11 +30,13 @@
     "statusLine": "{done} sent · {busy} waiting · {failed} failed",
     "itemDone": "✓",
     "itemWaiting": "…",
+    "itemPreparing": "Preparing…",
     "retry": "Try again",
     "errors": {
       "uploadFailed": "Sending failed — check your connection and try again.",
       "typeUnsupported": "This file type is not supported.",
-      "fileTooLarge": "The photo is larger than 50 MB."
+      "fileTooLarge": "The photo is larger than 50 MB.",
+      "prepareFailed": "HEIC conversion failed — please try again."
     },
     "gallery": {
       "heading": "Gallery",

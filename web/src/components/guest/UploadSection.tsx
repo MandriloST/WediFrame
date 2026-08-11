@@ -11,7 +11,13 @@ import {
   startUploads,
 } from "@/lib/guestApi";
 
-type ItemStatus = "queued" | "uploading" | "confirming" | "done" | "failed";
+type ItemStatus =
+  | "queued"
+  | "preparing"
+  | "uploading"
+  | "confirming"
+  | "done"
+  | "failed";
 
 type QueueItem = {
   id: string; // local id; mediaId once presigned
@@ -32,6 +38,30 @@ export type ConfirmedUpload = {
 const CONCURRENCY = 3;
 const NAME_KEY = "wediframe.guestName";
 const ACK_KEY_PREFIX = "wediframe.privacyAck:";
+
+const HEIC_TYPES = new Set(["image/heic", "image/heif"]);
+
+/** iPhones upload HEIC, which browsers can't display and R2/libvips can't
+ * thumbnail — we convert to JPEG in the browser before upload. */
+function isHeicType(contentType: string): boolean {
+  return HEIC_TYPES.has(contentType.toLowerCase());
+}
+
+function toJpgName(name: string | undefined): string {
+  const base = (name ?? "").replace(/\.(heic|heif)$/i, "").trim();
+  return `${base || "photo"}.jpg`;
+}
+
+/**
+ * Convert a HEIC/HEIF file to a JPEG File. The heic-to library (libheif WASM,
+ * ~2.9 MB) is dynamically imported so it only loads when a guest actually
+ * uploads a HEIC — it never enters the main bundle.
+ */
+async function heicToJpegFile(file: File): Promise<File> {
+  const { heicTo } = await import("heic-to");
+  const jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.85 });
+  return new File([jpeg], toJpgName(file.name), { type: "image/jpeg" });
+}
 
 /**
  * A local queue id. crypto.randomUUID() exists only in secure contexts
@@ -109,32 +139,47 @@ export function UploadSection({
   const uploadOne = useCallback(
     async (item: QueueItem, name: string | null) => {
       try {
+        // HEIC/HEIF → JPEG in the browser first (browsers can't show HEIC and
+        // the server can't thumbnail it). Everything downstream sees a JPEG.
+        let file: File = item.file;
+        let contentType = item.contentType;
+        if (isHeicType(contentType)) {
+          patch(item.id, { status: "preparing", progress: 0, errorKey: null });
+          try {
+            file = await heicToJpegFile(item.file);
+            contentType = "image/jpeg";
+          } catch {
+            patch(item.id, { status: "failed", errorKey: "prepareFailed" });
+            return;
+          }
+        }
+
         patch(item.id, { status: "uploading", progress: 0, errorKey: null });
         const [presigned] = await startUploads(
           token,
           [
             {
-              contentType: item.contentType,
-              sizeBytes: item.file.size,
-              fileName: item.file.name || null,
+              contentType,
+              sizeBytes: file.size,
+              fileName: file.name || null,
             },
           ],
           name,
         );
         await putToStorage(
           presigned.uploadUrl,
-          item.file,
+          file,
           presigned.contentType,
           (fraction) => patch(item.id, { progress: fraction }),
         );
         patch(item.id, { status: "confirming", progress: 1 });
         const confirmed = await confirmUpload(token, presigned.mediaId);
         patch(item.id, { status: "done" });
-        // Instant gallery preview from the local file — no round-trip download.
+        // Instant gallery preview from the (already-JPEG) local file.
         onConfirmedRef.current?.({
           mediaId: confirmed.mediaId,
-          file: item.file,
-          contentType: item.contentType,
+          file,
+          contentType,
         });
       } catch {
         patch(item.id, { status: "failed", errorKey: "uploadFailed" });
@@ -321,6 +366,11 @@ export function UploadSection({
                 {item.status === "done" && (
                   <span className="text-sm font-semibold text-[#4D7C5F]">
                     {t("itemDone")}
+                  </span>
+                )}
+                {item.status === "preparing" && (
+                  <span className="text-xs text-[#A8A29E]">
+                    {t("itemPreparing")}
                   </span>
                 )}
                 {(item.status === "confirming" || item.status === "queued") && (
