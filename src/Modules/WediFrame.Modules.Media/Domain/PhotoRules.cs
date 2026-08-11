@@ -17,10 +17,13 @@ public static class PhotoRules
     public const int MaxFileNameLength = 255;
     public const int MaxGuestNameLength = 100;
 
+    /// <summary>Generated thumbnails are always JPEG (max webview compatibility).</summary>
+    public const string ThumbnailContentType = "image/jpeg";
+
     /// <summary>
     /// Allowed content types mapped to the file extension used in the R2 key.
     /// HEIC/HEIF included because iPhones produce them — browsers mostly can't
-    /// display them, which the thumbnail job (M2) must handle (convert or fallback).
+    /// display them, which the thumbnail job handles (converts to a JPEG thumb).
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string> AllowedContentTypes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -38,4 +41,8 @@ public static class PhotoRules
 
     public static string NewKey(Guid eventId, Guid mediaId, string contentType)
         => KeyPrefix(eventId) + mediaId.ToString("N") + AllowedContentTypes[contentType];
+
+    /// <summary>R2 key for an item's generated thumbnail: events/{eventId}/thumbs/{mediaId}.jpg.</summary>
+    public static string ThumbnailKey(Guid eventId, Guid mediaId)
+        => $"events/{eventId:D}/thumbs/{mediaId:N}.jpg";
 }

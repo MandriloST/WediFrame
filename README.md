@@ -93,6 +93,30 @@ Bucket ime je u `appsettings.Development.json` (`R2:Bucket`). Na Railwayu: env v
 `R2__AccountId`, `R2__AccessKeyId`, `R2__SecretAccessKey`, `R2__Bucket`.
 API se diže i bez R2 konfiguracije (health, auth, eventi rade) — prvi storage poziv baci jasnu grešku.
 
+## Thumbnaili (background worker)
+
+Guest fotke dobivaju male JPEG thumbnaile (640 px) koje generira `ThumbnailWorker`
+u pozadini (libvips preko NetVips; HEIC s iPhonea je podržan). Radi automatski —
+poll svakih 15 s traži Confirmed fotke bez thumbnaila.
+
+- Novo polje `MediaItem.ThumbnailStatus` → treba migracija:
+
+```bash
+dotnet ef migrations add AddThumbnailStatus \
+  --project src/WediFrame.Infrastructure \
+  --startup-project src/WediFrame.Api
+dotnet ef database update \
+  --project src/WediFrame.Infrastructure \
+  --startup-project src/WediFrame.Api
+```
+
+- NetVips paketi se povuku kroz `dotnet restore`. Ako CPM prigovori na verziju:
+  `dotnet add src/WediFrame.Infrastructure package NetVips` i isto za `NetVips.Native`.
+- Podešavanje (opcionalno) kroz `Media:Thumbnails` (Enabled, PollSeconds, BatchSize,
+  MaxEdge, JpegQuality). Isključivanje na deployu: `Media__Thumbnails__Enabled=false`.
+- Ako thumbnaili masovno padnu zbog privremenog infra problema (R2/native), nakon
+  popravka resetiraj: `UPDATE media.media_items SET "ThumbnailStatus"='Pending' WHERE "ThumbnailStatus"='Failed';`
+
 ## Konvencije
 
 - Kod, komentari, imena u bazi i API-ju: engleski. Dokumentacija i komunikacija: hrvatski.

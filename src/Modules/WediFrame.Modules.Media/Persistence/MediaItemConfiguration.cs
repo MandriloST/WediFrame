@@ -37,9 +37,18 @@ public sealed class MediaItemConfiguration : IEntityTypeConfiguration<MediaItem>
 
         builder.Property(x => x.ThumbnailKey).HasMaxLength(256);
 
+        // Stored as text; default backfills existing rows to Pending on migration.
+        builder.Property(x => x.ThumbnailStatus)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .HasDefaultValue(MediaThumbnailStatus.Pending);
+
         // Gallery queries: newest first within an event, filtered by status/visibility.
         builder.HasIndex(x => new { x.EventId, x.CreatedAt });
         builder.HasIndex(x => new { x.EventId, x.UploadStatus });
+
+        // Thumbnail worker poll: photos, confirmed, still pending.
+        builder.HasIndex(x => new { x.Type, x.UploadStatus, x.ThumbnailStatus });
 
         // One object key = one item; also makes confirm/cleanup lookups cheap.
         builder.HasIndex(x => x.ObjectKey).IsUnique();

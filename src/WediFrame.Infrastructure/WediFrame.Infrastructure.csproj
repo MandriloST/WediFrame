@@ -4,6 +4,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="AWSSDK.S3" />
+    <!-- libvips thumbnails (native lib bundled by NetVips.Native). -->
+    <PackageReference Include="NetVips" />
+    <PackageReference Include="NetVips.Native" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WediFrame.Shared\WediFrame.Shared.csproj" />

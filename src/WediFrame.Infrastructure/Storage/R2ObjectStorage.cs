@@ -95,6 +95,38 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
         }
     }
 
+    public async Task<ObjectDownload?> DownloadAsync(string key, CancellationToken ct = default)
+    {
+        try
+        {
+            using var response = await _client.Value.GetObjectAsync(
+                new GetObjectRequest { BucketName = _bucket, Key = key }, ct);
+
+            using var buffer = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(buffer, ct);
+            return new ObjectDownload(buffer.ToArray(), response.Headers.ContentType);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public Task UploadAsync(string key, byte[] content, string contentType, CancellationToken ct = default)
+    {
+        // Seekable MemoryStream with a known length → a plain PUT with
+        // Content-Length (no streaming/trailer checksum that R2 rejects).
+        var request = new PutObjectRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            ContentType = contentType,
+            InputStream = new MemoryStream(content),
+        };
+
+        return _client.Value.PutObjectAsync(request, ct);
+    }
+
     public Task DeleteAsync(string key, CancellationToken ct = default)
         => _client.Value.DeleteObjectAsync(new DeleteObjectRequest { BucketName = _bucket, Key = key }, ct);
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using WediFrame.Infrastructure.Persistence;
 using WediFrame.Infrastructure.Storage;
+using WediFrame.Infrastructure.Imaging;
 using WediFrame.Modules.Admin;
 using WediFrame.Modules.Billing;
 using WediFrame.Modules.Events;
@@ -29,6 +30,10 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Cloudflare R2 (S3-compatible). Lazy: API boots without R2 config,
 // the first storage call throws a clear error instead.
 builder.Services.AddR2Storage(builder.Configuration);
+
+/// Thumbnail generation (libvips via NetVips). A technology concern like R2;
+// the Media module's background worker depends only on IThumbnailGenerator.
+builder.Services.AddImaging();
 
 // --- AuthN/AuthZ ---------------------------------------------------------------
 // JWT bearer for host/admin endpoints. Guests are authorized by event token

@@ -35,8 +35,16 @@ public sealed class MediaItem
 
     public MediaVisibility Visibility { get; set; } = MediaVisibility.Visible;
 
-    /// <summary>Set by thumbnail background job (M2).</summary>
+    /// <summary>R2 key of the generated JPEG thumbnail; null until the worker runs.</summary>
     public string? ThumbnailKey { get; set; }
+
+    /// <summary>
+    /// Thumbnail generation state, driven by the background worker. Pending →
+    /// Ready (ThumbnailKey set) or Failed (unreadable file). The gallery keys
+    /// display off ThumbnailKey; this field keeps the worker's poll efficient
+    /// and stops bad files from being retried forever.
+    /// </summary>
+    public MediaThumbnailStatus ThumbnailStatus { get; set; } = MediaThumbnailStatus.Pending;
 
     public DateTimeOffset CreatedAt { get; set; }
 
@@ -64,4 +72,16 @@ public enum MediaVisibility
 {
     Visible = 0,
     Hidden = 1,
+}
+
+public enum MediaThumbnailStatus
+{
+    /// <summary>Awaiting the thumbnail worker (default for new photos).</summary>
+    Pending = 0,
+
+    /// <summary>Thumbnail generated and stored (<see cref="MediaItem.ThumbnailKey"/> set).</summary>
+    Ready = 1,
+
+    /// <summary>Could not be thumbnailed (corrupt/unsupported); not retried.</summary>
+    Failed = 2,
 }
