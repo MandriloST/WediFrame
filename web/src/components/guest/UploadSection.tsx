@@ -11,7 +11,13 @@ import {
   startUploads,
 } from "@/lib/guestApi";
 
-type ItemStatus = "queued" | "uploading" | "confirming" | "done" | "failed";
+type ItemStatus =
+  | "queued"
+  | "preparing"
+  | "uploading"
+  | "confirming"
+  | "done"
+  | "failed";
 
 type QueueItem = {
   id: string; // local id; mediaId once presigned
@@ -32,6 +38,50 @@ export type ConfirmedUpload = {
 const CONCURRENCY = 3;
 const NAME_KEY = "wediframe.guestName";
 const ACK_KEY_PREFIX = "wediframe.privacyAck:";
+
+const HEIC_TYPES = new Set(["image/heic", "image/heif"]);
+
+/** iPhones upload HEIC, which browsers can't display and R2/libvips can't
+ * thumbnail — we convert to JPEG in the browser before upload. */
+function isHeicType(contentType: string): boolean {
+  return HEIC_TYPES.has(contentType.toLowerCase());
+}
+
+function toJpgName(name: string | undefined): string {
+  const base = (name ?? "").replace(/\.(heic|heif)$/i, "").trim();
+  return `${base || "photo"}.jpg`;
+}
+
+/**
+ * Convert a HEIC/HEIF file to a JPEG File. The heic-to library (libheif WASM,
+ * ~2.9 MB) is dynamically imported so it only loads when a guest actually
+ * uploads a HEIC — it never enters the main bundle.
+ */
+async function heicToJpegFile(file: File): Promise<File> {
+  const { heicTo } = await import("heic-to");
+  const jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.85 });
+  return new File([jpeg], toJpgName(file.name), { type: "image/jpeg" });
+}
+
+/**
+ * A local queue id. crypto.randomUUID() exists only in secure contexts
+ * (HTTPS/localhost), so it's undefined when testing over plain http on a LAN
+ * IP. crypto.getRandomValues() has no such restriction; Math.random() is the
+ * last-ditch fallback. This id never leaves the browser — the real mediaId
+ * comes from the server — so any unique string is fine.
+ */
+function newLocalId(): string {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  if (c?.getRandomValues) {
+    const b = c.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+  }
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /** Some Androids report an empty file.type — fall back to the extension. */
 function resolveContentType(file: File): string | null {
@@ -89,32 +139,47 @@ export function UploadSection({
   const uploadOne = useCallback(
     async (item: QueueItem, name: string | null) => {
       try {
+        // HEIC/HEIF → JPEG in the browser first (browsers can't show HEIC and
+        // the server can't thumbnail it). Everything downstream sees a JPEG.
+        let file: File = item.file;
+        let contentType = item.contentType;
+        if (isHeicType(contentType)) {
+          patch(item.id, { status: "preparing", progress: 0, errorKey: null });
+          try {
+            file = await heicToJpegFile(item.file);
+            contentType = "image/jpeg";
+          } catch {
+            patch(item.id, { status: "failed", errorKey: "prepareFailed" });
+            return;
+          }
+        }
+
         patch(item.id, { status: "uploading", progress: 0, errorKey: null });
         const [presigned] = await startUploads(
           token,
           [
             {
-              contentType: item.contentType,
-              sizeBytes: item.file.size,
-              fileName: item.file.name || null,
+              contentType,
+              sizeBytes: file.size,
+              fileName: file.name || null,
             },
           ],
           name,
         );
         await putToStorage(
           presigned.uploadUrl,
-          item.file,
+          file,
           presigned.contentType,
           (fraction) => patch(item.id, { progress: fraction }),
         );
         patch(item.id, { status: "confirming", progress: 1 });
         const confirmed = await confirmUpload(token, presigned.mediaId);
         patch(item.id, { status: "done" });
-        // Instant gallery preview from the local file — no round-trip download.
+        // Instant gallery preview from the (already-JPEG) local file.
         onConfirmedRef.current?.({
           mediaId: confirmed.mediaId,
-          file: item.file,
-          contentType: item.contentType,
+          file,
+          contentType,
         });
       } catch {
         patch(item.id, { status: "failed", errorKey: "uploadFailed" });
@@ -151,7 +216,7 @@ export function UploadSection({
         const contentType = resolveContentType(file);
         const tooBig = file.size <= 0 || file.size > PHOTO_MAX_BYTES;
         return {
-          id: crypto.randomUUID(),
+          id: newLocalId(),
           file,
           contentType: contentType ?? "",
           status: contentType && !tooBig ? "queued" : "failed",
@@ -219,7 +284,7 @@ export function UploadSection({
         type="file"
         accept="image/*"
         multiple
-        hidden
+        className="sr-only"
         onChange={(e) => {
           handleFiles(e.target.files);
           e.target.value = ""; // allow picking the same files again
@@ -301,6 +366,11 @@ export function UploadSection({
                 {item.status === "done" && (
                   <span className="text-sm font-semibold text-[#4D7C5F]">
                     {t("itemDone")}
+                  </span>
+                )}
+                {item.status === "preparing" && (
+                  <span className="text-xs text-[#A8A29E]">
+                    {t("itemPreparing")}
                   </span>
                 )}
                 {(item.status === "confirming" || item.status === "queued") && (
