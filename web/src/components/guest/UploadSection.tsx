@@ -219,7 +219,7 @@ export function UploadSection({
         type="file"
         accept="image/*"
         multiple
-        hidden
+        className="sr-only"
         onChange={(e) => {
           handleFiles(e.target.files);
           e.target.value = ""; // allow picking the same files again

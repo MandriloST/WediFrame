@@ -122,6 +122,7 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
             Key = key,
             ContentType = contentType,
             InputStream = new MemoryStream(content),
+            DisablePayloadSigning = true,
         };
 
         return _client.Value.PutObjectAsync(request, ct);
