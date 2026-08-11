@@ -27,17 +27,20 @@ type Tile = {
 };
 
 function serverTile(item: GalleryItem): Tile {
+  const originalDisplayable = BROWSER_DISPLAYABLE_TYPES.has(
+    item.contentType.toLowerCase(),
+  );
   return {
     mediaId: item.mediaId,
     gridUrl: item.thumbnailUrl ?? item.url,
-    fullUrl: item.url,
+    // Lightbox: full-res original when the browser can show it; otherwise the
+    // JPEG thumbnail (HEIC/HEIF can't render, but their thumbnail can).
+    fullUrl: originalDisplayable ? item.url : (item.thumbnailUrl ?? item.url),
     contentType: item.contentType,
     isVideo: item.type === "Video",
-    // A thumbnail (jpg/webp from the job) is always displayable; otherwise it
+    // A thumbnail (jpg from the worker) is always displayable; otherwise it
     // depends on the original's type (HEIC/HEIF cannot render yet).
-    displayable:
-      item.thumbnailUrl != null ||
-      BROWSER_DISPLAYABLE_TYPES.has(item.contentType.toLowerCase()),
+    displayable: item.thumbnailUrl != null || originalDisplayable,
     guestName: item.guestName,
   };
 }
