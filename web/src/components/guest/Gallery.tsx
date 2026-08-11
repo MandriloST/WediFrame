@@ -70,7 +70,6 @@ export function Gallery({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const loadedIds = useRef<Set<string>>(new Set());
   const started = useRef(false);
 
   const loadMore = useCallback(async () => {
@@ -79,10 +78,14 @@ export function Gallery({
     try {
       const offset = nextOffset ?? 0;
       const page = await getGuestMedia(token, offset, GALLERY_PAGE_SIZE);
+      // Pure updater: dedupe against what's already in state. React Strict Mode
+      // invokes state updaters twice in dev to surface impurities — mutating an
+      // external ref here (the old loadedIds Set) made the second pass filter
+      // out the whole page, so the gallery loaded then vanished.
       setItems((prev) => {
-        const fresh = page.items.filter((i) => !loadedIds.current.has(i.mediaId));
-        fresh.forEach((i) => loadedIds.current.add(i.mediaId));
-        return [...prev, ...fresh];
+        const seen = new Set(prev.map((i) => i.mediaId));
+        const fresh = page.items.filter((i) => !seen.has(i.mediaId));
+        return fresh.length === 0 ? prev : [...prev, ...fresh];
       });
       setNextOffset(page.nextOffset);
     } catch {
