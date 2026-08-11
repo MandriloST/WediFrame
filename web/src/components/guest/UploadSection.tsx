@@ -33,6 +33,26 @@ const CONCURRENCY = 3;
 const NAME_KEY = "wediframe.guestName";
 const ACK_KEY_PREFIX = "wediframe.privacyAck:";
 
+/**
+ * A local queue id. crypto.randomUUID() exists only in secure contexts
+ * (HTTPS/localhost), so it's undefined when testing over plain http on a LAN
+ * IP. crypto.getRandomValues() has no such restriction; Math.random() is the
+ * last-ditch fallback. This id never leaves the browser — the real mediaId
+ * comes from the server — so any unique string is fine.
+ */
+function newLocalId(): string {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  if (c?.getRandomValues) {
+    const b = c.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+  }
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 /** Some Androids report an empty file.type — fall back to the extension. */
 function resolveContentType(file: File): string | null {
   if (file.type && PHOTO_ALLOWED_TYPES.has(file.type.toLowerCase())) {
@@ -151,7 +171,7 @@ export function UploadSection({
         const contentType = resolveContentType(file);
         const tooBig = file.size <= 0 || file.size > PHOTO_MAX_BYTES;
         return {
-          id: crypto.randomUUID(),
+          id: newLocalId(),
           file,
           contentType: contentType ?? "",
           status: contentType && !tooBig ? "queued" : "failed",
