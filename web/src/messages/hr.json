@@ -50,5 +50,60 @@
       "next": "Sljedeća",
       "unsupported": "Pregled ove fotografije stiže uskoro."
     }
+  },
+  "auth": {
+    "loginTitle": "Prijava u dashboard",
+    "registerTitle": "Napravi račun",
+    "email": "Email",
+    "password": "Lozinka",
+    "passwordHint": "Najmanje 8 znakova.",
+    "loginButton": "Prijavi se",
+    "registerButton": "Registriraj se",
+    "pleaseWait": "Trenutak…",
+    "noAccount": "Nemaš račun?",
+    "registerLink": "Registriraj se",
+    "haveAccount": "Već imaš račun?",
+    "loginLink": "Prijavi se",
+    "errors": {
+      "invalidCredentials": "Pogrešan email ili lozinka.",
+      "emailTaken": "Taj email je već registriran.",
+      "emailInvalid": "Neispravan email.",
+      "passwordLength": "Lozinka mora imati 8–128 znakova.",
+      "generic": "Nešto je pošlo po zlu. Pokušaj ponovno."
+    }
+  },
+  "dashboard": {
+    "title": "Moji eventi",
+    "logout": "Odjava",
+    "newEvent": "Novi event",
+    "loading": "Učitavam…",
+    "empty": "Još nemaš evenata. Kreni s „Novi event”.",
+    "loadError": "Ne mogu učitati evente.",
+    "retry": "Pokušaj ponovno",
+    "uploadStart": "Upload počinje",
+    "copyLink": "Kopiraj link",
+    "copied": "Kopirano!",
+    "status": {
+      "Draft": "Skica",
+      "Active": "Aktivan",
+      "UploadClosed": "Upload zatvoren",
+      "Expired": "Isteklo",
+      "Deleted": "Obrisano"
+    }
+  },
+  "newEvent": {
+    "back": "Natrag",
+    "title": "Novi event",
+    "titleLabel": "Naziv",
+    "titlePlaceholder": "npr. Iva i Ivan, 24.6.2027.",
+    "dateLabel": "Datum početka uploada",
+    "dateHint": "Od tog datuma gosti mogu slati fotke i video.",
+    "createButton": "Kreiraj event",
+    "creating": "Kreiram…",
+    "errors": {
+      "titleRequired": "Upiši naziv eventa.",
+      "session": "Sesija je istekla — prijavi se ponovno.",
+      "generic": "Kreiranje nije uspjelo. Pokušaj ponovno."
+    }
   }
 }
