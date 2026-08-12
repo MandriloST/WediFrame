@@ -34,6 +34,11 @@ public static class GuestMediaEndpoints
         endpoints.MapPost("/guest/{token}/uploads/{mediaId:guid}/confirm", ConfirmUploadAsync);
         endpoints.MapGet("/guest/{token}/media", ListMediaAsync);
 
+        // Video: multipart directly browser → R2.
+        endpoints.MapPost("/guest/{token}/videos", InitVideoUploadAsync);
+        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/complete", CompleteVideoUploadAsync);
+        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/abort", AbortVideoUploadAsync);
+
         return endpoints;
     }
 
@@ -273,6 +278,227 @@ public static class GuestMediaEndpoints
         var nextOffset = rows.Count == take ? skip + take : (int?)null;
 
         return Results.Ok(new GuestGalleryResponse(items, nextOffset));
+    }
+
+    /// <summary>Generous expiry — a 2 GB video on wedding wifi takes a while.</summary>
+    private static readonly TimeSpan VideoPartUrlExpiry = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// Start a video upload: validate, initiate an R2 multipart upload, create a
+    /// Pending MediaItem, and hand back a presigned PUT URL per part. The browser
+    /// uploads chunks directly to R2; a stale/never-completed multipart is aborted
+    /// by the cleanup job (backlog).
+    /// </summary>
+    private static async Task<IResult> InitVideoUploadAsync(
+        string token,
+        GuestVideoInitRequest request,
+        IGuestEventAccess guestEvents,
+        DbContext db,
+        IObjectStorage storage,
+        TimeProvider timeProvider,
+        CancellationToken ct)
+    {
+        var ev = await guestEvents.FindByTokenAsync(token, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        if (!ev.IsUploadOpen(today))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["event"] = ["media.upload_closed"],
+            });
+        }
+
+        var contentType = (request.ContentType ?? "").Trim();
+        var errors = new Dictionary<string, string[]>();
+        if (!VideoRules.AllowedContentTypes.ContainsKey(contentType))
+        {
+            errors["contentType"] = ["media.type_unsupported"];
+        }
+
+        if (request.SizeBytes is <= 0 or > VideoRules.MaxBytes)
+        {
+            errors["sizeBytes"] = ["media.file_too_large"]; // > 0 and <= 2 GB
+        }
+
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var mediaId = Guid.NewGuid();
+        var key = VideoRules.NewKey(ev.EventId, mediaId, contentType);
+        var uploadId = await storage.CreateMultipartUploadAsync(key, contentType, ct);
+
+        var partCount = VideoRules.PartCount(request.SizeBytes);
+        var parts = new List<GuestVideoPartUrl>(partCount);
+        for (var n = 1; n <= partCount; n++)
+        {
+            var url = await storage.PresignUploadPartAsync(key, uploadId, n, VideoPartUrlExpiry, ct);
+            parts.Add(new GuestVideoPartUrl(n, url.ToString()));
+        }
+
+        db.Set<MediaItem>().Add(new MediaItem
+        {
+            Id = mediaId,
+            EventId = ev.EventId,
+            Type = MediaType.Video,
+            ObjectKey = key,
+            ContentType = contentType,
+            SizeBytes = request.SizeBytes,
+            FileName = Truncate(request.FileName, PhotoRules.MaxFileNameLength),
+            GuestName = Truncate(request.GuestName, PhotoRules.MaxGuestNameLength),
+            UploadStatus = MediaUploadStatus.Pending,
+            Visibility = MediaVisibility.Visible,
+            MultipartUploadId = uploadId,
+            CreatedAt = now,
+        });
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new GuestVideoInitResponse(mediaId, uploadId, VideoRules.PartSizeBytes, parts));
+    }
+
+    /// <summary>
+    /// Assemble the uploaded parts into the final object, verify it, mark Confirmed.
+    /// Idempotent. On assembly failure the item stays Pending so the client can retry.
+    /// </summary>
+    private static async Task<IResult> CompleteVideoUploadAsync(
+        string token,
+        Guid mediaId,
+        GuestVideoCompleteRequest request,
+        IGuestEventAccess guestEvents,
+        DbContext db,
+        IObjectStorage storage,
+        TimeProvider timeProvider,
+        CancellationToken ct)
+    {
+        var ev = await guestEvents.FindByTokenAsync(token, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        var item = await db.Set<MediaItem>()
+            .SingleOrDefaultAsync(m => m.Id == mediaId
+                && m.EventId == ev.EventId
+                && m.Type == MediaType.Video
+                && m.SoftDeletedAt == null, ct);
+
+        if (item is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (item.UploadStatus == MediaUploadStatus.Confirmed)
+        {
+            return Results.Ok(new GuestConfirmResponse(item.Id, item.UploadStatus.ToString(), item.SizeBytes));
+        }
+
+        var parts = request.Parts ?? [];
+        if (item.MultipartUploadId is null || parts.Count == 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["parts"] = ["media.not_uploaded"],
+            });
+        }
+
+        try
+        {
+            await storage.CompleteMultipartUploadAsync(
+                item.ObjectKey,
+                item.MultipartUploadId,
+                parts.Select(p => new MultipartPart(p.PartNumber, p.ETag)).ToList(),
+                ct);
+        }
+        catch (Exception)
+        {
+            // Missing/mismatched part — leave Pending; client restarts, the open
+            // multipart is aborted later by the cleanup job.
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["parts"] = ["media.upload_incomplete"],
+            });
+        }
+
+        var info = await storage.HeadAsync(item.ObjectKey, ct);
+        if (info is null || info.SizeBytes == 0 || info.SizeBytes > VideoRules.MaxBytes)
+        {
+            await storage.DeleteAsync(item.ObjectKey, ct);
+            item.UploadStatus = MediaUploadStatus.Failed;
+            item.MultipartUploadId = null;
+            await db.SaveChangesAsync(ct);
+
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["mediaId"] = [info is null || info.SizeBytes == 0 ? "media.file_empty" : "media.file_too_large"],
+            });
+        }
+
+        item.UploadStatus = MediaUploadStatus.Confirmed;
+        item.SizeBytes = info.SizeBytes;
+        item.ConfirmedAt = timeProvider.GetUtcNow();
+        item.MultipartUploadId = null;
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new GuestConfirmResponse(item.Id, item.UploadStatus.ToString(), item.SizeBytes));
+    }
+
+    /// <summary>
+    /// Cancel an in-progress video upload: abort the R2 multipart (best-effort)
+    /// and mark the item Failed. Called when the guest cancels or a part gives up.
+    /// </summary>
+    private static async Task<IResult> AbortVideoUploadAsync(
+        string token,
+        Guid mediaId,
+        IGuestEventAccess guestEvents,
+        DbContext db,
+        IObjectStorage storage,
+        CancellationToken ct)
+    {
+        var ev = await guestEvents.FindByTokenAsync(token, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        var item = await db.Set<MediaItem>()
+            .SingleOrDefaultAsync(m => m.Id == mediaId
+                && m.EventId == ev.EventId
+                && m.Type == MediaType.Video
+                && m.SoftDeletedAt == null, ct);
+
+        if (item is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (item.MultipartUploadId is not null)
+        {
+            try
+            {
+                await storage.AbortMultipartUploadAsync(item.ObjectKey, item.MultipartUploadId, ct);
+            }
+            catch (Exception)
+            {
+                // Best-effort — a cleanup job can retry the abort later.
+            }
+
+            item.MultipartUploadId = null;
+        }
+
+        if (item.UploadStatus != MediaUploadStatus.Confirmed)
+        {
+            item.UploadStatus = MediaUploadStatus.Failed;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.Ok();
     }
 
     private static string? Truncate(string? value, int max)

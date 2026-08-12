@@ -21,7 +21,7 @@
   "guest": {
     "eyebrow": "Share your memories",
     "addPhotos": "Add photos",
-    "videoComingSoon": "Video upload is coming soon",
+    "mediaHint": "Photos and video",
     "uploadClosed": "Uploads are closed — thank you to everyone who shared! The gallery stays available.",
     "privacyNotice": "Photos you send will be visible to all guests with this event link and stored until the gallery expires. We use them for nothing else.",
     "privacyLink": "Privacy policy",

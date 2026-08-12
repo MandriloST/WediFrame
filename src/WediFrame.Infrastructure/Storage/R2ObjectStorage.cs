@@ -131,6 +131,57 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
     public Task DeleteAsync(string key, CancellationToken ct = default)
         => _client.Value.DeleteObjectAsync(new DeleteObjectRequest { BucketName = _bucket, Key = key }, ct);
 
+    // --- Multipart ------------------------------------------------------------
+
+    public async Task<string> CreateMultipartUploadAsync(string key, string contentType, CancellationToken ct = default)
+    {
+        var response = await _client.Value.InitiateMultipartUploadAsync(
+            new InitiateMultipartUploadRequest
+            {
+                BucketName = _bucket,
+                Key = key,
+                ContentType = contentType,
+            }, ct);
+
+        return response.UploadId;
+    }
+
+    public async Task<Uri> PresignUploadPartAsync(string key, string uploadId, int partNumber, TimeSpan expiry, CancellationToken ct = default)
+    {
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            Verb = HttpVerb.PUT,
+            Expires = DateTime.UtcNow.Add(expiry),
+            UploadId = uploadId,
+            PartNumber = partNumber,
+        };
+
+        var url = await _client.Value.GetPreSignedURLAsync(request);
+        return new Uri(url);
+    }
+
+    public Task CompleteMultipartUploadAsync(string key, string uploadId, IReadOnlyList<MultipartPart> parts, CancellationToken ct = default)
+        => _client.Value.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            UploadId = uploadId,
+            PartETags = parts
+                .OrderBy(p => p.PartNumber)
+                .Select(p => new PartETag(p.PartNumber, p.ETag))
+                .ToList(),
+        }, ct);
+
+    public Task AbortMultipartUploadAsync(string key, string uploadId, CancellationToken ct = default)
+        => _client.Value.AbortMultipartUploadAsync(new AbortMultipartUploadRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            UploadId = uploadId,
+        }, ct);
+
     public void Dispose()
     {
         if (_client.IsValueCreated)

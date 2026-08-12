@@ -21,7 +21,7 @@
   "guest": {
     "eyebrow": "Podijelite uspomene",
     "addPhotos": "Dodaj fotografije",
-    "videoComingSoon": "Upload videa stiže uskoro",
+    "mediaHint": "Fotografije i video",
     "uploadClosed": "Upload je završen — hvala svima koji su podijelili uspomene! Galerija ostaje dostupna.",
     "privacyNotice": "Fotografije koje pošaljete bit će vidljive svim gostima s linkom na ovaj event i pohranjene do isteka trajanja galerije. Ne koristimo ih ni za što drugo.",
     "privacyLink": "Pravila privatnosti",

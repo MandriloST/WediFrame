@@ -34,7 +34,27 @@ public interface IObjectStorage
 
     /// <summary>Delete an object. Deleting a non-existent key is a no-op.</summary>
     Task DeleteAsync(string key, CancellationToken ct = default);
+
+    // --- Multipart (large video uploads, browser → R2 directly) --------------
+
+    /// <summary>Start a multipart upload; returns the R2 upload id.</summary>
+    Task<string> CreateMultipartUploadAsync(string key, string contentType, CancellationToken ct = default);
+
+    /// <summary>
+    /// Presigned PUT URL for one part (1-based part number) of a multipart upload.
+    /// The browser PUTs the chunk to this URL and reads the ETag from the response.
+    /// </summary>
+    Task<Uri> PresignUploadPartAsync(string key, string uploadId, int partNumber, TimeSpan expiry, CancellationToken ct = default);
+
+    /// <summary>Finish a multipart upload by assembling the uploaded parts (ordered by part number).</summary>
+    Task CompleteMultipartUploadAsync(string key, string uploadId, IReadOnlyList<MultipartPart> parts, CancellationToken ct = default);
+
+    /// <summary>Abort a multipart upload and discard any uploaded parts. Best-effort.</summary>
+    Task AbortMultipartUploadAsync(string key, string uploadId, CancellationToken ct = default);
 }
+
+/// <summary>One completed part of a multipart upload: its number and the ETag R2 returned.</summary>
+public sealed record MultipartPart(int PartNumber, string ETag);
 
 /// <summary>Metadata returned by <see cref="IObjectStorage.HeadAsync"/>.</summary>
 public sealed record StoredObjectInfo(long SizeBytes, string? ContentType);

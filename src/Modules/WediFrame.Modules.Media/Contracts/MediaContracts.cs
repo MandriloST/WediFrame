@@ -59,3 +59,31 @@ public sealed record GuestGalleryItem(
     string ContentType,
     string? GuestName,
     DateTimeOffset CreatedAt);
+
+// --- Video multipart upload --------------------------------------------------
+
+/// <summary>
+/// Guest starts a video upload. The server initiates an R2 multipart upload and
+/// returns a presigned PUT URL per part; the browser uploads chunks directly.
+/// </summary>
+public sealed record GuestVideoInitRequest(
+    string ContentType,
+    long SizeBytes,
+    string? FileName,
+    string? GuestName);
+
+public sealed record GuestVideoInitResponse(
+    Guid MediaId,
+    string UploadId,
+    long PartSizeBytes,
+    List<GuestVideoPartUrl> Parts);
+
+public sealed record GuestVideoPartUrl(int PartNumber, string Url);
+
+/// <summary>
+/// Guest finished PUTting every part; sends back the ETag R2 returned per part
+/// so the server can assemble (complete) the object.
+/// </summary>
+public sealed record GuestVideoCompleteRequest(List<GuestVideoPartInput> Parts);
+
+public sealed record GuestVideoPartInput(int PartNumber, string ETag);

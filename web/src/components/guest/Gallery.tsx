@@ -303,7 +303,16 @@ function Lightbox({
         ×
       </button>
 
-      {tile.displayable ? (
+      {tile.isVideo ? (
+        <video
+          src={tile.fullUrl}
+          controls
+          autoPlay
+          playsInline
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-[85dvh] max-w-full rounded-lg bg-black object-contain"
+        />
+      ) : tile.displayable ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={tile.fullUrl}
