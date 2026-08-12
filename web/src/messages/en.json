@@ -134,6 +134,30 @@
     "coverUploading": "Uploading…",
     "coverTypeError": "JPEG, PNG and WebP are supported.",
     "coverSizeError": "The image is larger than 20 MB.",
-    "coverError": "Cover upload failed."
+    "coverError": "Cover upload failed.",
+    "manageGallery": "Manage gallery"
+  },
+  "hostGallery": {
+    "back": "Back",
+    "title": "Gallery",
+    "heading": "Gallery",
+    "count": "{count, plural, one {# memory} other {# memories}}",
+    "hiddenHint": "Hidden items are only visible to you — guests don't see them.",
+    "empty": "No photos or videos uploaded yet.",
+    "loadMore": "Load more",
+    "loadError": "Couldn't load the gallery.",
+    "retry": "Try again",
+    "notFound": "Event not found.",
+    "close": "Close",
+    "prev": "Previous",
+    "next": "Next",
+    "unsupported": "A preview of this file is coming soon.",
+    "hide": "Hide",
+    "unhide": "Show",
+    "delete": "Delete",
+    "confirmDelete": "Confirm delete",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "actionError": "That didn't work. Please try again."
   }
 }

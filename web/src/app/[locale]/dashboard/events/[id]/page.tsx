@@ -243,6 +243,13 @@ function ShareSection({
           <p className="py-8 text-xs text-[#A8A29E]">{t("qrLoading")}</p>
         )}
       </div>
+
+      <Link
+        href={`/dashboard/events/${event.id}/gallery`}
+        className="mt-6 flex items-center justify-center rounded-xl bg-[#7C2D3E] px-4 py-3 font-medium text-white transition active:scale-[0.99]"
+      >
+        {t("manageGallery")}
+      </Link>
     </section>
   );
 }
