@@ -190,3 +190,10 @@ export async function createEvent(
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;
 }
+
+/** Free activation (Draft → Active) so the guest link starts working. */
+export async function activateEvent(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/activate`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}

@@ -31,6 +31,7 @@ public static class EventEndpoints
         group.MapPost("/", CreateAsync);
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", GetAsync);
+        group.MapPost("/{id:guid}/activate", ActivateAsync);
         group.MapGet("/{id:guid}/qr", GetQrAsync);
         group.MapPost("/{id:guid}/cover", StartCoverUploadAsync);
         group.MapPost("/{id:guid}/cover/confirm", ConfirmCoverAsync);
@@ -288,6 +289,49 @@ public static class EventEndpoints
             ? Task.FromResult<Event?>(null)
             : db.Set<Event>()
                 .SingleOrDefaultAsync(e => e.Id == id && e.OwnerUserId == userId && e.Status != EventStatus.Deleted, ct);
+
+    /// <summary>
+    /// Free activation (MVP): Draft → Active so the guest link starts working.
+    /// Once Billing (M3) exists, paid packages activate only after payment; Free
+    /// stays immediate. Idempotent for already-Active events.
+    /// </summary>
+    private static async Task<IResult> ActivateAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        DbContext db,
+        IOptions<FrontendOptions> frontend,
+        IObjectStorage storage,
+        CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var entity = await db.Set<Event>()
+            .SingleOrDefaultAsync(e => e.Id == id && e.OwnerUserId == userId, ct);
+
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (entity.Status == EventStatus.Draft)
+        {
+            entity.Status = EventStatus.Active;
+            await db.SaveChangesAsync(ct);
+        }
+        else if (entity.Status != EventStatus.Active)
+        {
+            // Expired / UploadClosed / Deleted can't be (re)activated here.
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["status"] = ["events.cannot_activate"],
+            });
+        }
+
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, ct));
+    }
 
     private static async Task<EventResponse> ToResponseAsync(
         Event e, FrontendOptions frontend, IObjectStorage storage, CancellationToken ct)

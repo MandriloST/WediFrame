@@ -89,7 +89,11 @@
       "UploadClosed": "Upload closed",
       "Expired": "Expired",
       "Deleted": "Deleted"
-    }
+    },
+    "activate": "Activate event",
+    "activating": "Activating…",
+    "draftHint": "This event is a draft — activate it so the guest link works.",
+    "activateError": "Activation failed. Please try again."
   },
   "newEvent": {
     "back": "Back",

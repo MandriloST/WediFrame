@@ -89,7 +89,11 @@
       "UploadClosed": "Upload zatvoren",
       "Expired": "Isteklo",
       "Deleted": "Obrisano"
-    }
+    },
+    "activate": "Aktiviraj event",
+    "activating": "Aktiviram…",
+    "draftHint": "Event je skica — aktiviraj ga da guest link proradi.",
+    "activateError": "Aktivacija nije uspjela. Pokušaj ponovno."
   },
   "newEvent": {
     "back": "Natrag",

@@ -5,10 +5,38 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   type HostEvent,
+  activateEvent,
   isAuthed,
   listEvents,
   logout,
 } from "@/lib/hostApi";
+
+/** Copy that also works in non-secure contexts (LAN http), where
+ *  navigator.clipboard is undefined. Falls back to execCommand. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -24,6 +52,12 @@ export default function DashboardPage() {
     } catch {
       setError(true);
     }
+  }, []);
+
+  const updateEvent = useCallback((updated: HostEvent) => {
+    setEvents((prev) =>
+      prev ? prev.map((e) => (e.id === updated.id ? updated : e)) : prev,
+    );
   }, []);
 
   useEffect(() => {
@@ -89,7 +123,7 @@ export default function DashboardPage() {
 
         <ul className="space-y-3">
           {events?.map((ev) => (
-            <EventCard key={ev.id} event={ev} />
+            <EventCard key={ev.id} event={ev} onUpdated={updateEvent} />
           ))}
         </ul>
       </div>
@@ -97,17 +131,38 @@ export default function DashboardPage() {
   );
 }
 
-function EventCard({ event }: { event: HostEvent }) {
+function EventCard({
+  event,
+  onUpdated,
+}: {
+  event: HostEvent;
+  onUpdated: (e: HostEvent) => void;
+}) {
   const t = useTranslations("dashboard");
   const [copied, setCopied] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activateError, setActivateError] = useState(false);
+
+  const isDraft = event.status === "Draft";
+  const shareable = event.status === "Active" || event.status === "UploadClosed";
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(event.guestUrl);
+    const ok = await copyText(event.guestUrl);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    }
+  };
+
+  const activate = async () => {
+    if (activating) return;
+    setActivating(true);
+    setActivateError(false);
+    try {
+      onUpdated(await activateEvent(event.id));
     } catch {
-      // clipboard blocked — the link is visible below anyway
+      setActivateError(true);
+      setActivating(false);
     }
   };
 
@@ -123,21 +178,40 @@ function EventCard({ event }: { event: HostEvent }) {
         <StatusBadge status={event.status} />
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          readOnly
-          value={event.guestUrl}
-          onFocus={(e) => e.currentTarget.select()}
-          className="min-w-0 flex-1 truncate rounded-lg border border-[#E7E0D8] bg-[#FBF8F4] px-2.5 py-1.5 text-xs text-[#57534E]"
-        />
-        <button
-          type="button"
-          onClick={copy}
-          className="shrink-0 rounded-lg bg-[#EFE7DC] px-3 py-1.5 text-xs font-medium text-[#7C2D3E]"
-        >
-          {copied ? t("copied") : t("copyLink")}
-        </button>
-      </div>
+      {isDraft && (
+        <div className="mt-3">
+          <p className="text-xs text-[#A8A29E]">{t("draftHint")}</p>
+          <button
+            type="button"
+            onClick={activate}
+            disabled={activating}
+            className="mt-2 w-full rounded-lg bg-[#7C2D3E] px-4 py-2.5 text-sm font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
+          >
+            {activating ? t("activating") : t("activate")}
+          </button>
+          {activateError && (
+            <p className="mt-2 text-xs text-[#B4432F]">{t("activateError")}</p>
+          )}
+        </div>
+      )}
+
+      {shareable && (
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            readOnly
+            value={event.guestUrl}
+            onFocus={(e) => e.currentTarget.select()}
+            className="min-w-0 flex-1 truncate rounded-lg border border-[#E7E0D8] bg-[#FBF8F4] px-2.5 py-1.5 text-xs text-[#57534E]"
+          />
+          <button
+            type="button"
+            onClick={copy}
+            className="shrink-0 rounded-lg bg-[#EFE7DC] px-3 py-1.5 text-xs font-medium text-[#7C2D3E]"
+          >
+            {copied ? t("copied") : t("copyLink")}
+          </button>
+        </div>
+      )}
     </li>
   );
 }
