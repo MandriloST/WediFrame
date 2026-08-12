@@ -109,5 +109,31 @@
       "session": "Sesija je istekla — prijavi se ponovno.",
       "generic": "Kreiranje nije uspjelo. Pokušaj ponovno."
     }
+  },
+  "eventDetail": {
+    "back": "Natrag",
+    "loading": "Učitavam…",
+    "notFound": "Event nije pronađen.",
+    "uploadStart": "Upload počinje",
+    "draftHint": "Event je skica — aktiviraj ga da guest link i QR prorade.",
+    "activate": "Aktiviraj event",
+    "activating": "Aktiviram…",
+    "activateError": "Aktivacija nije uspjela.",
+    "guestLink": "Guest link",
+    "copy": "Kopiraj",
+    "copied": "Kopirano!",
+    "open": "Otvori guest stranicu",
+    "qrTitle": "QR kod",
+    "qrHint": "Isprintaj i stavi na stolove — gosti skeniraju i uploadaju.",
+    "qrDownload": "Preuzmi QR (PNG)",
+    "qrLoading": "Učitavam QR…",
+    "cover": "Naslovna fotografija",
+    "coverNone": "Još nema naslovne fotografije.",
+    "coverUpload": "Dodaj naslovnu",
+    "coverReplace": "Zamijeni naslovnu",
+    "coverUploading": "Uploadam…",
+    "coverTypeError": "Podržani su JPEG, PNG i WebP.",
+    "coverSizeError": "Slika je veća od 20 MB.",
+    "coverError": "Upload naslovne nije uspio."
   }
 }

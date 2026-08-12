@@ -170,7 +170,12 @@ function EventCard({
     <li className="rounded-2xl border border-[#E7E0D8] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-medium text-[#1C1917]">{event.title}</p>
+          <Link
+            href={`/dashboard/events/${event.id}`}
+            className="truncate font-medium text-[#1C1917] underline-offset-2 hover:underline"
+          >
+            {event.title}
+          </Link>
           <p className="mt-0.5 text-xs text-[#A8A29E]">
             {t("uploadStart")}: {event.uploadStartDate}
           </p>

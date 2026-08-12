@@ -109,5 +109,31 @@
       "session": "Session expired — please sign in again.",
       "generic": "Couldn't create the event. Please try again."
     }
+  },
+  "eventDetail": {
+    "back": "Back",
+    "loading": "Loading…",
+    "notFound": "Event not found.",
+    "uploadStart": "Upload starts",
+    "draftHint": "This event is a draft — activate it so the guest link and QR work.",
+    "activate": "Activate event",
+    "activating": "Activating…",
+    "activateError": "Activation failed.",
+    "guestLink": "Guest link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "open": "Open guest page",
+    "qrTitle": "QR code",
+    "qrHint": "Print it for the tables — guests scan and upload.",
+    "qrDownload": "Download QR (PNG)",
+    "qrLoading": "Loading QR…",
+    "cover": "Cover photo",
+    "coverNone": "No cover photo yet.",
+    "coverUpload": "Add cover",
+    "coverReplace": "Replace cover",
+    "coverUploading": "Uploading…",
+    "coverTypeError": "JPEG, PNG and WebP are supported.",
+    "coverSizeError": "The image is larger than 20 MB.",
+    "coverError": "Cover upload failed."
   }
 }

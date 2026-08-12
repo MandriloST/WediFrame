@@ -197,3 +197,55 @@ export async function activateEvent(id: string): Promise<HostEvent> {
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;
 }
+
+export async function getEvent(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
+/** QR as a PNG blob (the endpoint needs auth, so we can't use a plain <img src>). */
+export async function getQrPng(id: string, size = 20): Promise<Blob> {
+  const res = await authFetch(`/events/${id}/qr?format=png&size=${size}`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return res.blob();
+}
+
+export type CoverUpload = {
+  key: string;
+  uploadUrl: string;
+  contentType: string;
+  expiresAt: string;
+  maxBytes: number;
+};
+
+export const COVER_MAX_BYTES = 20 * 1024 * 1024; // mirrors CoverPhotoRules
+export const COVER_ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+export async function startCoverUpload(
+  id: string,
+  contentType: string,
+  sizeBytes: number,
+): Promise<CoverUpload> {
+  const res = await authFetch(`/events/${id}/cover`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentType, sizeBytes }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as CoverUpload;
+}
+
+export async function confirmCover(id: string, key: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/cover/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
