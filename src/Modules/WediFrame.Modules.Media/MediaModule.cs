@@ -30,5 +30,7 @@ public sealed class MediaModule : IModule
     }
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
-        => endpoints.MapGuestMediaEndpoints();
+        => endpoints
+            .MapGuestMediaEndpoints()
+            .MapHostMediaEndpoints();
 }

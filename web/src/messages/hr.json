@@ -48,7 +48,8 @@
       "close": "Zatvori",
       "prev": "Prethodna",
       "next": "Sljedeća",
-      "unsupported": "Pregled ove fotografije stiže uskoro."
+      "unsupported": "Pregled ove fotografije stiže uskoro.",
+      "download": "Preuzmi"
     }
   },
   "auth": {
@@ -134,6 +135,31 @@
     "coverUploading": "Uploadam…",
     "coverTypeError": "Podržani su JPEG, PNG i WebP.",
     "coverSizeError": "Slika je veća od 20 MB.",
-    "coverError": "Upload naslovne nije uspio."
+    "coverError": "Upload naslovne nije uspio.",
+    "manageGallery": "Upravljaj galerijom"
+  },
+  "hostGallery": {
+    "back": "Natrag",
+    "title": "Galerija",
+    "heading": "Galerija",
+    "count": "{count, plural, one {# uspomena} few {# uspomene} other {# uspomena}}",
+    "hiddenHint": "Skrivene stavke vidite samo vi — gostima se ne prikazuju.",
+    "empty": "Još nema uploadanih fotografija ni videa.",
+    "loadMore": "Učitaj još",
+    "loadError": "Galeriju nije moguće učitati.",
+    "retry": "Pokušaj ponovno",
+    "notFound": "Event nije pronađen.",
+    "close": "Zatvori",
+    "prev": "Prethodna",
+    "next": "Sljedeća",
+    "unsupported": "Pregled ove datoteke stiže uskoro.",
+    "hide": "Sakrij",
+    "unhide": "Prikaži",
+    "delete": "Obriši",
+    "confirmDelete": "Potvrdi brisanje",
+    "deleting": "Brišem…",
+    "cancel": "Odustani",
+    "actionError": "Radnja nije uspjela. Pokušaj ponovno.",
+    "download": "Preuzmi"
   }
 }

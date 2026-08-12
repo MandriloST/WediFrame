@@ -249,3 +249,77 @@ export async function confirmCover(id: string, key: string): Promise<HostEvent> 
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;
 }
+
+// --- gallery management (host, M2) -------------------------------------------
+
+/**
+ * A confirmed item as the host sees it — includes HIDDEN items and per-item
+ * visibility so the host can toggle it. Shares the display fields with the
+ * guest GalleryItem, so it feeds the same shared tile builder.
+ */
+export type HostGalleryItem = {
+  mediaId: string;
+  type: string; // "Photo" | "Video"
+  url: string;
+  thumbnailUrl: string | null;
+  contentType: string;
+  guestName: string | null;
+  visibility: string; // "Visible" | "Hidden"
+  sizeBytes: number;
+  createdAt: string;
+};
+
+export type HostGalleryPage = {
+  items: HostGalleryItem[];
+  nextOffset: number | null;
+};
+
+export const HOST_GALLERY_PAGE_SIZE = 24;
+
+export async function getHostMedia(
+  eventId: string,
+  offset = 0,
+  limit = HOST_GALLERY_PAGE_SIZE,
+): Promise<HostGalleryPage> {
+  const res = await authFetch(
+    `/events/${eventId}/media?offset=${offset}&limit=${limit}`,
+  );
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostGalleryPage;
+}
+
+/** Hide or unhide an item. Returns the new visibility. */
+export async function setMediaVisibility(
+  eventId: string,
+  mediaId: string,
+  visibility: "Visible" | "Hidden",
+): Promise<{ mediaId: string; visibility: string }> {
+  const res = await authFetch(`/events/${eventId}/media/${mediaId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ visibility }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as { mediaId: string; visibility: string };
+}
+
+/** Soft-delete an item (recoverable until retention removes it physically). */
+export async function deleteMedia(
+  eventId: string,
+  mediaId: string,
+): Promise<void> {
+  const res = await authFetch(`/events/${eventId}/media/${mediaId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+}
+
+/** Presigned attachment URL to save one item (any visibility). */
+export async function getMediaDownloadUrl(
+  eventId: string,
+  mediaId: string,
+): Promise<{ url: string; fileName: string }> {
+  const res = await authFetch(`/events/${eventId}/media/${mediaId}/download`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as { url: string; fileName: string };
+}

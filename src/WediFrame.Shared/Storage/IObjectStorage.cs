@@ -20,6 +20,13 @@ public interface IObjectStorage
     /// <summary>Create a short-lived presigned GET URL for displaying/downloading an object.</summary>
     Task<Uri> PresignGetAsync(string key, TimeSpan expiry, CancellationToken ct = default);
 
+    /// <summary>
+    /// Create a short-lived presigned GET URL that forces a browser download
+    /// (Content-Disposition: attachment) with the given file name, instead of
+    /// rendering inline. Used by the "save this photo/video" action.
+    /// </summary>
+    Task<Uri> PresignDownloadAsync(string key, string downloadFileName, TimeSpan expiry, CancellationToken ct = default);
+
     /// <summary>Fetch object metadata (HEAD), or null if the object does not exist.</summary>
     Task<StoredObjectInfo?> HeadAsync(string key, CancellationToken ct = default);
 

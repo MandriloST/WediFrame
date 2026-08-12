@@ -6,8 +6,16 @@ import {
   BROWSER_DISPLAYABLE_TYPES,
   GALLERY_PAGE_SIZE,
   getGuestMedia,
+  getGuestMediaDownloadUrl,
   type GalleryItem,
 } from "@/lib/guestApi";
+import {
+  MediaLightbox,
+  MediaThumb,
+  tileFromServer,
+  triggerBrowserDownload,
+  type MediaTile,
+} from "@/components/media/MediaGallery";
 
 /** A locally-uploaded item shown instantly from its blob, before the server lists it. */
 export type GalleryPreview = {
@@ -16,36 +24,7 @@ export type GalleryPreview = {
   contentType: string;
 };
 
-type Tile = {
-  mediaId: string;
-  gridUrl: string; // shown in the grid (thumbnail if available, else original/local)
-  fullUrl: string; // shown in the lightbox
-  contentType: string;
-  isVideo: boolean;
-  displayable: boolean; // can the browser render it in an <img>?
-  guestName: string | null;
-};
-
-function serverTile(item: GalleryItem): Tile {
-  const originalDisplayable = BROWSER_DISPLAYABLE_TYPES.has(
-    item.contentType.toLowerCase(),
-  );
-  return {
-    mediaId: item.mediaId,
-    gridUrl: item.thumbnailUrl ?? item.url,
-    // Lightbox: full-res original when the browser can show it; otherwise the
-    // JPEG thumbnail (HEIC/HEIF can't render, but their thumbnail can).
-    fullUrl: originalDisplayable ? item.url : (item.thumbnailUrl ?? item.url),
-    contentType: item.contentType,
-    isVideo: item.type === "Video",
-    // A thumbnail (jpg from the worker) is always displayable; otherwise it
-    // depends on the original's type (HEIC/HEIF cannot render yet).
-    displayable: item.thumbnailUrl != null || originalDisplayable,
-    guestName: item.guestName,
-  };
-}
-
-function previewTile(preview: GalleryPreview): Tile {
+function previewTile(preview: GalleryPreview): MediaTile {
   return {
     mediaId: preview.mediaId,
     gridUrl: preview.url,
@@ -70,6 +49,7 @@ export function Gallery({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const started = useRef(false);
 
   const loadMore = useCallback(async () => {
@@ -103,11 +83,11 @@ export function Gallery({
   }, [loadMore]);
 
   // Local previews on top; server items deduped against them.
-  const tiles: Tile[] = useMemo(() => {
+  const tiles: MediaTile[] = useMemo(() => {
     const previewIds = new Set(previews.map((p) => p.mediaId));
     return [
       ...previews.map(previewTile),
-      ...items.filter((i) => !previewIds.has(i.mediaId)).map(serverTile),
+      ...items.filter((i) => !previewIds.has(i.mediaId)).map(tileFromServer),
     ];
   }, [previews, items]);
 
@@ -133,6 +113,22 @@ export function Gallery({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, closeLightbox, step]);
+
+  const download = useCallback(
+    async (tile: MediaTile) => {
+      if (downloadingId) return;
+      setDownloadingId(tile.mediaId);
+      try {
+        const { url } = await getGuestMediaDownloadUrl(token, tile.mediaId);
+        triggerBrowserDownload(url);
+      } catch {
+        // silent — the button re-enables so the guest can retry
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [token, downloadingId],
+  );
 
   const initialLoading = loading && tiles.length === 0;
   const isEmpty = !loading && !error && tiles.length === 0 && nextOffset === null;
@@ -176,18 +172,7 @@ export function Gallery({
                 onClick={() => setLightbox(index)}
                 className="group relative block aspect-square w-full overflow-hidden rounded-md bg-[#EFE7DC]"
               >
-                {tile.displayable ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={tile.gridUrl}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition group-active:scale-[0.97]"
-                  />
-                ) : (
-                  <PlaceholderTile />
-                )}
-                {tile.isVideo && <PlayBadge />}
+                <MediaThumb tile={tile} />
               </button>
             </li>
           ))}
@@ -221,140 +206,24 @@ export function Gallery({
       )}
 
       {lightbox !== null && tiles[lightbox] && (
-        <Lightbox
+        <MediaLightbox
           tile={tiles[lightbox]}
           hasPrev={lightbox > 0}
           hasNext={lightbox < tiles.length - 1}
           onPrev={() => step(-1)}
           onNext={() => step(1)}
           onClose={closeLightbox}
+          onDownload={() => void download(tiles[lightbox])}
+          downloading={downloadingId === tiles[lightbox].mediaId}
           labels={{
             close: t("close"),
             prev: t("prev"),
             next: t("next"),
             unsupported: t("unsupported"),
+            download: t("download"),
           }}
         />
       )}
     </section>
-  );
-}
-
-function PlaceholderTile() {
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-[#EFE7DC] text-[#B8A99A]">
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden
-      >
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <circle cx="12" cy="12" r="3.2" />
-        <path d="M8 5l1.2-2h5.6L16 5" />
-      </svg>
-    </div>
-  );
-}
-
-function PlayBadge() {
-  return (
-    <span className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" aria-hidden>
-        <path d="M8 5v14l11-7z" />
-      </svg>
-    </span>
-  );
-}
-
-function Lightbox({
-  tile,
-  hasPrev,
-  hasNext,
-  onPrev,
-  onNext,
-  onClose,
-  labels,
-}: {
-  tile: Tile;
-  hasPrev: boolean;
-  hasNext: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-  onClose: () => void;
-  labels: { close: string; prev: string; next: string; unsupported: string };
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label={labels.close}
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl leading-none text-white"
-      >
-        ×
-      </button>
-
-      {tile.isVideo ? (
-        <video
-          src={tile.fullUrl}
-          controls
-          autoPlay
-          playsInline
-          onClick={(e) => e.stopPropagation()}
-          className="max-h-[85dvh] max-w-full rounded-lg bg-black object-contain"
-        />
-      ) : tile.displayable ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={tile.fullUrl}
-          alt=""
-          onClick={(e) => e.stopPropagation()}
-          className="max-h-[85dvh] max-w-full rounded-lg object-contain"
-        />
-      ) : (
-        <p
-          onClick={(e) => e.stopPropagation()}
-          className="max-w-xs rounded-lg bg-white/10 px-6 py-8 text-center text-sm text-white"
-        >
-          {labels.unsupported}
-        </p>
-      )}
-
-      {hasPrev && (
-        <button
-          type="button"
-          aria-label={labels.prev}
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-          className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-2xl text-white"
-        >
-          ‹
-        </button>
-      )}
-      {hasNext && (
-        <button
-          type="button"
-          aria-label={labels.next}
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-          className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-2xl text-white"
-        >
-          ›
-        </button>
-      )}
-    </div>
   );
 }
