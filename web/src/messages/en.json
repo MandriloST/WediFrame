@@ -48,7 +48,8 @@
       "close": "Close",
       "prev": "Previous",
       "next": "Next",
-      "unsupported": "A preview of this photo is coming soon."
+      "unsupported": "A preview of this photo is coming soon.",
+      "download": "Download"
     }
   },
   "auth": {
@@ -158,6 +159,7 @@
     "confirmDelete": "Confirm delete",
     "deleting": "Deleting…",
     "cancel": "Cancel",
-    "actionError": "That didn't work. Please try again."
+    "actionError": "That didn't work. Please try again.",
+    "download": "Download"
   }
 }

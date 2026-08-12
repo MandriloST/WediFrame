@@ -48,7 +48,8 @@
       "close": "Zatvori",
       "prev": "Prethodna",
       "next": "Sljedeća",
-      "unsupported": "Pregled ove fotografije stiže uskoro."
+      "unsupported": "Pregled ove fotografije stiže uskoro.",
+      "download": "Preuzmi"
     }
   },
   "auth": {
@@ -158,6 +159,7 @@
     "confirmDelete": "Potvrdi brisanje",
     "deleting": "Brišem…",
     "cancel": "Odustani",
-    "actionError": "Radnja nije uspjela. Pokušaj ponovno."
+    "actionError": "Radnja nije uspjela. Pokušaj ponovno.",
+    "download": "Preuzmi"
   }
 }

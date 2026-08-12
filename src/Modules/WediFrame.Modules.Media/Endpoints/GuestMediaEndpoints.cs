@@ -33,6 +33,7 @@ public static class GuestMediaEndpoints
         endpoints.MapPost("/guest/{token}/uploads", StartUploadsAsync);
         endpoints.MapPost("/guest/{token}/uploads/{mediaId:guid}/confirm", ConfirmUploadAsync);
         endpoints.MapGet("/guest/{token}/media", ListMediaAsync);
+        endpoints.MapGet("/guest/{token}/media/{mediaId:guid}/download", DownloadMediaAsync);
 
         // Video: multipart directly browser → R2.
         endpoints.MapPost("/guest/{token}/videos", InitVideoUploadAsync);
@@ -278,6 +279,48 @@ public static class GuestMediaEndpoints
         var nextOffset = rows.Count == take ? skip + take : (int?)null;
 
         return Results.Ok(new GuestGalleryResponse(items, nextOffset));
+    }
+
+    /// <summary>Download URLs are used immediately after the click.</summary>
+    private static readonly TimeSpan DownloadUrlExpiry = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// A short-lived presigned URL that downloads the original as an attachment.
+    /// Any guest with the link may save any VISIBLE item (same rule as the
+    /// gallery read) — hidden or soft-deleted items 404.
+    /// </summary>
+    private static async Task<IResult> DownloadMediaAsync(
+        string token,
+        Guid mediaId,
+        IGuestEventAccess guestEvents,
+        DbContext db,
+        IObjectStorage storage,
+        CancellationToken ct)
+    {
+        var ev = await guestEvents.FindByTokenAsync(token, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        var item = await db.Set<MediaItem>()
+            .Where(m => m.Id == mediaId
+                && m.EventId == ev.EventId
+                && m.UploadStatus == MediaUploadStatus.Confirmed
+                && m.Visibility == MediaVisibility.Visible
+                && m.SoftDeletedAt == null)
+            .Select(m => new { m.Id, m.Type, m.ObjectKey, m.ContentType })
+            .SingleOrDefaultAsync(ct);
+
+        if (item is null)
+        {
+            return Results.NotFound();
+        }
+
+        var fileName = MediaDownloadName.For(item.Type, item.ContentType, item.Id);
+        var url = (await storage.PresignDownloadAsync(item.ObjectKey, fileName, DownloadUrlExpiry, ct)).ToString();
+
+        return Results.Ok(new MediaDownloadResponse(url, fileName));
     }
 
     /// <summary>Generous expiry — a 2 GB video on wedding wifi takes a while.</summary>

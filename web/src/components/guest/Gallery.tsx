@@ -6,12 +6,14 @@ import {
   BROWSER_DISPLAYABLE_TYPES,
   GALLERY_PAGE_SIZE,
   getGuestMedia,
+  getGuestMediaDownloadUrl,
   type GalleryItem,
 } from "@/lib/guestApi";
 import {
   MediaLightbox,
   MediaThumb,
   tileFromServer,
+  triggerBrowserDownload,
   type MediaTile,
 } from "@/components/media/MediaGallery";
 
@@ -47,6 +49,7 @@ export function Gallery({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const started = useRef(false);
 
   const loadMore = useCallback(async () => {
@@ -110,6 +113,22 @@ export function Gallery({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, closeLightbox, step]);
+
+  const download = useCallback(
+    async (tile: MediaTile) => {
+      if (downloadingId) return;
+      setDownloadingId(tile.mediaId);
+      try {
+        const { url } = await getGuestMediaDownloadUrl(token, tile.mediaId);
+        triggerBrowserDownload(url);
+      } catch {
+        // silent — the button re-enables so the guest can retry
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [token, downloadingId],
+  );
 
   const initialLoading = loading && tiles.length === 0;
   const isEmpty = !loading && !error && tiles.length === 0 && nextOffset === null;
@@ -194,11 +213,14 @@ export function Gallery({
           onPrev={() => step(-1)}
           onNext={() => step(1)}
           onClose={closeLightbox}
+          onDownload={() => void download(tiles[lightbox])}
+          downloading={downloadingId === tiles[lightbox].mediaId}
           labels={{
             close: t("close"),
             prev: t("prev"),
             next: t("next"),
             unsupported: t("unsupported"),
+            download: t("download"),
           }}
         />
       )}

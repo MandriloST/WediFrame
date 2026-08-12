@@ -80,6 +80,37 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
         return new Uri(url);
     }
 
+    public async Task<Uri> PresignDownloadAsync(
+        string key, string downloadFileName, TimeSpan expiry, CancellationToken ct = default)
+    {
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(expiry),
+        };
+
+        // Force "save as" instead of inline render. The filename is signed into
+        // the URL via the response-content-disposition override, so it survives
+        // the direct browser → R2 request (the API never proxies the bytes).
+        request.ResponseHeaderOverrides.ContentDisposition =
+            $"attachment; filename=\"{SanitizeFileName(downloadFileName)}\"";
+
+        var url = await _client.Value.GetPreSignedURLAsync(request);
+        return new Uri(url);
+    }
+
+    /// <summary>Keep the filename header-safe (no quotes/control chars/path separators).</summary>
+    private static string SanitizeFileName(string name)
+    {
+        var cleaned = new string(name
+            .Where(c => !char.IsControl(c) && c != '"' && c != '\\' && c != '/')
+            .ToArray())
+            .Trim();
+        return string.IsNullOrEmpty(cleaned) ? "wediframe" : cleaned;
+    }
+
     public async Task<StoredObjectInfo?> HeadAsync(string key, CancellationToken ct = default)
     {
         try

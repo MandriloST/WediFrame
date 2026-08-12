@@ -28,6 +28,9 @@ public static class HostMediaEndpoints
     /// <summary>Display URLs live long enough for a management session; each page re-signs.</summary>
     private static readonly TimeSpan ViewUrlExpiry = TimeSpan.FromHours(1);
 
+    /// <summary>Download URLs are used immediately after the click.</summary>
+    private static readonly TimeSpan DownloadUrlExpiry = TimeSpan.FromMinutes(5);
+
     private const int DefaultPageSize = 24;
     private const int MaxPageSize = 48;
 
@@ -38,6 +41,7 @@ public static class HostMediaEndpoints
         var group = endpoints.MapGroup("/events/{eventId:guid}/media").RequireAuthorization();
 
         group.MapGet("/", ListAsync);
+        group.MapGet("/{mediaId:guid}/download", DownloadAsync);
         group.MapPatch("/{mediaId:guid}", SetVisibilityAsync);
         group.MapDelete("/{mediaId:guid}", DeleteAsync);
 
@@ -118,6 +122,49 @@ public static class HostMediaEndpoints
         var nextOffset = rows.Count == take ? skip + take : (int?)null;
 
         return Results.Ok(new HostGalleryResponse(items, nextOffset));
+    }
+
+    /// <summary>
+    /// A short-lived presigned URL that downloads the original (any visibility,
+    /// as long as it isn't soft-deleted) as an attachment. The host can save
+    /// anything guests shared, hidden or not.
+    /// </summary>
+    private static async Task<IResult> DownloadAsync(
+        Guid eventId,
+        Guid mediaId,
+        ClaimsPrincipal principal,
+        IHostEventAccess hostEvents,
+        DbContext db,
+        IObjectStorage storage,
+        CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (await hostEvents.FindOwnedAsync(eventId, userId, ct) is null)
+        {
+            return Results.NotFound();
+        }
+
+        var item = await db.Set<MediaItem>()
+            .Where(m => m.Id == mediaId
+                && m.EventId == eventId
+                && m.UploadStatus == MediaUploadStatus.Confirmed
+                && m.SoftDeletedAt == null)
+            .Select(m => new { m.Id, m.Type, m.ObjectKey, m.ContentType })
+            .SingleOrDefaultAsync(ct);
+
+        if (item is null)
+        {
+            return Results.NotFound();
+        }
+
+        var fileName = MediaDownloadName.For(item.Type, item.ContentType, item.Id);
+        var url = (await storage.PresignDownloadAsync(item.ObjectKey, fileName, DownloadUrlExpiry, ct)).ToString();
+
+        return Results.Ok(new MediaDownloadResponse(url, fileName));
     }
 
     /// <summary>

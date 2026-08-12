@@ -313,3 +313,13 @@ export async function deleteMedia(
   });
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
 }
+
+/** Presigned attachment URL to save one item (any visibility). */
+export async function getMediaDownloadUrl(
+  eventId: string,
+  mediaId: string,
+): Promise<{ url: string; fileName: string }> {
+  const res = await authFetch(`/events/${eventId}/media/${mediaId}/download`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as { url: string; fileName: string };
+}

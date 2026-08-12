@@ -106,7 +106,23 @@ export type LightboxLabels = {
   prev: string;
   next: string;
   unsupported: string;
+  download: string;
 };
+
+/**
+ * Trigger a browser download for a (presigned, cross-origin) URL. The bytes
+ * come straight from R2 with Content-Disposition: attachment, so the browser
+ * saves rather than navigates; the `download` attribute is a harmless hint.
+ */
+export function triggerBrowserDownload(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 export function MediaLightbox({
   tile,
@@ -117,6 +133,8 @@ export function MediaLightbox({
   onClose,
   labels,
   actions,
+  onDownload,
+  downloading,
 }: {
   tile: MediaTile;
   hasPrev: boolean;
@@ -127,6 +145,9 @@ export function MediaLightbox({
   labels: LightboxLabels;
   /** Optional bottom action bar (host gallery: hide/delete). Guest passes none. */
   actions?: ReactNode;
+  /** When set, shows a download button in the top bar. */
+  onDownload?: () => void;
+  downloading?: boolean;
 }) {
   return (
     <div
@@ -143,6 +164,39 @@ export function MediaLightbox({
       >
         ×
       </button>
+
+      {onDownload && (
+        <button
+          type="button"
+          disabled={downloading}
+          aria-label={labels.download}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload();
+          }}
+          className="absolute right-16 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-50"
+        >
+          {downloading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {tile.isVideo ? (
         <video

@@ -6,6 +6,7 @@ import {
   HOST_GALLERY_PAGE_SIZE,
   deleteMedia,
   getHostMedia,
+  getMediaDownloadUrl,
   setMediaVisibility,
   type HostGalleryItem,
 } from "@/lib/hostApi";
@@ -13,6 +14,7 @@ import {
   MediaLightbox,
   MediaThumb,
   tileFromServer,
+  triggerBrowserDownload,
   type MediaTile,
 } from "@/components/media/MediaGallery";
 
@@ -31,6 +33,7 @@ export function HostGallery({ eventId }: { eventId: string }) {
   const [error, setError] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [actionError, setActionError] = useState(false);
   const started = useRef(false);
@@ -150,6 +153,22 @@ export function HostGallery({ eventId }: { eventId: string }) {
     [eventId, busyId],
   );
 
+  const download = useCallback(
+    async (item: HostGalleryItem) => {
+      if (downloadingId) return;
+      setDownloadingId(item.mediaId);
+      try {
+        const { url } = await getMediaDownloadUrl(eventId, item.mediaId);
+        triggerBrowserDownload(url);
+      } catch {
+        setActionError(true);
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [eventId, downloadingId],
+  );
+
   const initialLoading = loading && tiles.length === 0;
   const isEmpty = !loading && !error && tiles.length === 0 && nextOffset === null;
 
@@ -251,11 +270,14 @@ export function HostGallery({ eventId }: { eventId: string }) {
           onPrev={() => step(-1)}
           onNext={() => step(1)}
           onClose={closeLightbox}
+          onDownload={() => void download(current)}
+          downloading={downloadingId === current.mediaId}
           labels={{
             close: t("close"),
             prev: t("prev"),
             next: t("next"),
             unsupported: t("unsupported"),
+            download: t("download"),
           }}
           actions={
             <div className="flex w-full max-w-md flex-col items-center gap-2">

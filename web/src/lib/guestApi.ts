@@ -265,3 +265,15 @@ export async function abortVideoUpload(
     // best-effort
   }
 }
+
+/** Presigned attachment URL to save one item (visible items only). */
+export async function getGuestMediaDownloadUrl(
+  token: string,
+  mediaId: string,
+): Promise<{ url: string; fileName: string }> {
+  const res = await fetch(
+    `${API_BASE}/guest/${encodeURIComponent(token)}/media/${mediaId}/download`,
+  );
+  if (!res.ok) throw new Error(`download failed: ${res.status}`);
+  return (await res.json()) as { url: string; fileName: string };
+}

@@ -2,7 +2,7 @@
 
 > **Namjena datoteke:** Ovo je glavni kontekst za AI asistenta (Claude/Sonnet) i podsjetnik za vlasnika projekta.
 > Pročitaj ovu datoteku na početku svake sesije. Uz nju idu `ARCHITECTURE.md` i `BACKLOG.md`.
-> **Zadnje ažurirano:** 2026-07-06 (v2)
+> **Zadnje ažurirano:** 2026-08-12 (v19) — dodano pravilo isporuke (§7)
 
 ---
 
@@ -102,6 +102,7 @@ Svi limiti su **ukupni** po eventu. Uz to: **max 2 GB po pojedinačnoj video dat
 ## 7. Kako raditi na projektu (upute za Claude/Sonnet)
 
 - **Jezik:** komunikacija s korisnikom na hrvatskom; kod, komentari, imena u bazi i API-ju na engleskom. Dokumentacija na hrvatskom osim tehničkih pojmova.
+- **Isporuka koda (OBAVEZNO):** svaka isporuka ide kao **ZIP s točnom strukturom foldera** (raspakiraš u root → sve legne na mjesto) **i/ili `git` patch** (`git apply`). Nikad samo isječci bez putanja. Izričit, ponavljan zahtjev vlasnika.
 - **Iterativno, mali koraci.** Korisnik nema stabilan raspored. Svaki radni blok malen, samostalan, završiv u jednoj sesiji. Nikad tri fronte odjednom.
 - **Backlog je izvor istine.** Na kraju svake sesije ažurirati `BACKLOG.md`: što je napravljeno, što je sljedeće, nove odluke u Decision Log. Kad korisnik pita "što je u backlogu" — pročitati i sažeti datoteku, ne rekonstruirati iz sjećanja.
 - **Odluke se bilježe** u Decision Log s datumom i obrazloženjem.
