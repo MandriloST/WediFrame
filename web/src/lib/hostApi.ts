@@ -323,3 +323,32 @@ export async function getMediaDownloadUrl(
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as { url: string; fileName: string };
 }
+
+// --- gallery ZIP export (host, M2) -------------------------------------------
+
+export type ExportJob = {
+  jobId: string;
+  status: "Pending" | "Running" | "Ready" | "Failed" | string;
+  itemCount: number | null;
+  sizeBytes: number | null;
+  downloadUrl: string | null;
+  fileName: string | null;
+  error: string | null;
+};
+
+/** Start (or reuse) a whole-gallery ZIP export. Poll getExport until Ready/Failed. */
+export async function startExport(eventId: string): Promise<ExportJob> {
+  const res = await authFetch(`/events/${eventId}/export`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as ExportJob;
+}
+
+/** Poll an export job. When status is "Ready", downloadUrl is a presigned ZIP link. */
+export async function getExport(
+  eventId: string,
+  jobId: string,
+): Promise<ExportJob> {
+  const res = await authFetch(`/events/${eventId}/export/${jobId}`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as ExportJob;
+}

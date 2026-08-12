@@ -160,6 +160,11 @@
     "deleting": "Deleting…",
     "cancel": "Cancel",
     "actionError": "That didn't work. Please try again.",
-    "download": "Download"
+    "download": "Download",
+    "exportAll": "Download all (ZIP)",
+    "exportPreparing": "Preparing ZIP…",
+    "exportReady": "ZIP ready",
+    "exportHint": "This can take a few minutes for larger galleries.",
+    "exportError": "Couldn't prepare the ZIP. Please try again."
   }
 }

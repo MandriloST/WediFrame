@@ -22,9 +22,15 @@ public sealed class MediaModule : IModule
         services.AddOptions<ThumbnailOptions>()
             .Bind(configuration.GetSection(ThumbnailOptions.SectionName));
 
+        services.AddOptions<ExportOptions>()
+            .Bind(configuration.GetSection(ExportOptions.SectionName));
+
         // Background thumbnail generation (depends on IThumbnailGenerator +
         // IObjectStorage, both registered by the API host / Infrastructure).
         services.AddHostedService<ThumbnailWorker>();
+
+        // Background gallery ZIP export (depends on IObjectStorage).
+        services.AddHostedService<ExportWorker>();
 
         return services;
     }
@@ -32,5 +38,6 @@ public sealed class MediaModule : IModule
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
         => endpoints
             .MapGuestMediaEndpoints()
-            .MapHostMediaEndpoints();
+            .MapHostMediaEndpoints()
+            .MapHostExportEndpoints();
 }

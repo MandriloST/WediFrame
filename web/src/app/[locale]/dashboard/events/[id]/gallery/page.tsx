@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError, getEvent, isAuthed, type HostEvent } from "@/lib/hostApi";
 import { HostGallery } from "@/components/host/HostGallery";
+import { ExportAll } from "@/components/host/ExportAll";
 
 export default function HostGalleryPage() {
   const t = useTranslations("hostGallery");
@@ -49,13 +50,16 @@ export default function HostGalleryPage() {
         ‹ {t("back")}
       </Link>
 
-      <header className="mt-4">
-        <h1 className="text-xl font-semibold tracking-tight text-[#1C1917]">
-          {t("title")}
-        </h1>
-        {event && (
-          <p className="mt-0.5 truncate text-sm text-[#A8A29E]">{event.title}</p>
-        )}
+      <header className="mt-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-[#1C1917]">
+            {t("title")}
+          </h1>
+          {event && (
+            <p className="mt-0.5 truncate text-sm text-[#A8A29E]">{event.title}</p>
+          )}
+        </div>
+        {event && !notFound && !error && <ExportAll eventId={eventId} />}
       </header>
 
       {notFound && (

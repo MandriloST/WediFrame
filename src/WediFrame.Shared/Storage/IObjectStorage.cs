@@ -36,8 +36,24 @@ public interface IObjectStorage
     /// </summary>
     Task<ObjectDownload?> DownloadAsync(string key, CancellationToken ct = default);
 
+    /// <summary>
+    /// Open an object's content as a readable stream (server-side, background
+    /// jobs only), or null if it does not exist. Used by the ZIP export worker
+    /// to copy originals into the archive without buffering whole files.
+    /// The caller disposes the returned stream.
+    /// </summary>
+    Task<Stream?> OpenReadAsync(string key, CancellationToken ct = default);
+
     /// <summary>Upload bytes to a key (server-side, background jobs only). Overwrites.</summary>
     Task UploadAsync(string key, byte[] content, string contentType, CancellationToken ct = default);
+
+    /// <summary>
+    /// Upload from a seekable stream (server-side, background jobs only). The
+    /// stream must report Length (used for Content-Length); the ZIP export
+    /// worker passes a temp FileStream so large archives never sit in memory.
+    /// Overwrites.
+    /// </summary>
+    Task UploadAsync(string key, Stream content, string contentType, CancellationToken ct = default);
 
     /// <summary>Delete an object. Deleting a non-existent key is a no-op.</summary>
     Task DeleteAsync(string key, CancellationToken ct = default);

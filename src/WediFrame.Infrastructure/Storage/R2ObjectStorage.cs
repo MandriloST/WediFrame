@@ -143,6 +143,22 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
         }
     }
 
+    public async Task<Stream?> OpenReadAsync(string key, CancellationToken ct = default)
+    {
+        try
+        {
+            // Caller owns the returned stream; the underlying S3 response is
+            // disposed when that stream is disposed.
+            var response = await _client.Value.GetObjectAsync(
+                new GetObjectRequest { BucketName = _bucket, Key = key }, ct);
+            return response.ResponseStream;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public Task UploadAsync(string key, byte[] content, string contentType, CancellationToken ct = default)
     {
         // Seekable MemoryStream with a known length → a plain PUT with
@@ -153,6 +169,23 @@ public sealed class R2ObjectStorage(IOptions<R2Options> options) : IObjectStorag
             Key = key,
             ContentType = contentType,
             InputStream = new MemoryStream(content),
+            DisablePayloadSigning = true,
+        };
+
+        return _client.Value.PutObjectAsync(request, ct);
+    }
+
+    public Task UploadAsync(string key, Stream content, string contentType, CancellationToken ct = default)
+    {
+        // The stream must be seekable so the SDK can set Content-Length and R2
+        // gets a plain PUT (the ZIP worker passes a temp FileStream).
+        var request = new PutObjectRequest
+        {
+            BucketName = _bucket,
+            Key = key,
+            ContentType = contentType,
+            InputStream = content,
+            AutoCloseStream = false,
             DisablePayloadSigning = true,
         };
 

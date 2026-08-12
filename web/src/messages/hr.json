@@ -160,6 +160,11 @@
     "deleting": "Brišem…",
     "cancel": "Odustani",
     "actionError": "Radnja nije uspjela. Pokušaj ponovno.",
-    "download": "Preuzmi"
+    "download": "Preuzmi",
+    "exportAll": "Preuzmi sve (ZIP)",
+    "exportPreparing": "Pripremam ZIP…",
+    "exportReady": "ZIP spreman",
+    "exportHint": "Ovo može potrajati par minuta za veće galerije.",
+    "exportError": "Priprema ZIP-a nije uspjela. Pokušaj ponovno."
   }
 }
