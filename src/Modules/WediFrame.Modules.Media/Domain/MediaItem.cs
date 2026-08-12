@@ -39,6 +39,12 @@ public sealed class MediaItem
     public string? ThumbnailKey { get; set; }
 
     /// <summary>
+    /// For video uploads in progress: the R2 multipart upload id. Set at init,
+    /// cleared on complete/abort. Lets a cleanup job abort stale multiparts.
+    /// </summary>
+    public string? MultipartUploadId { get; set; }
+
+    /// <summary>
     /// Thumbnail generation state, driven by the background worker. Pending →
     /// Ready (ThumbnailKey set) or Failed (unreadable file). The gallery keys
     /// display off ThumbnailKey; this field keeps the worker's poll efficient

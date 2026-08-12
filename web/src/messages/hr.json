@@ -21,7 +21,7 @@
   "guest": {
     "eyebrow": "Podijelite uspomene",
     "addPhotos": "Dodaj fotografije",
-    "videoComingSoon": "Upload videa stiže uskoro",
+    "mediaHint": "Fotografije i video",
     "uploadClosed": "Upload je završen — hvala svima koji su podijelili uspomene! Galerija ostaje dostupna.",
     "privacyNotice": "Fotografije koje pošaljete bit će vidljive svim gostima s linkom na ovaj event i pohranjene do isteka trajanja galerije. Ne koristimo ih ni za što drugo.",
     "privacyLink": "Pravila privatnosti",
@@ -50,5 +50,90 @@
       "next": "Sljedeća",
       "unsupported": "Pregled ove fotografije stiže uskoro."
     }
+  },
+  "auth": {
+    "loginTitle": "Prijava u dashboard",
+    "registerTitle": "Napravi račun",
+    "email": "Email",
+    "password": "Lozinka",
+    "passwordHint": "Najmanje 8 znakova.",
+    "loginButton": "Prijavi se",
+    "registerButton": "Registriraj se",
+    "pleaseWait": "Trenutak…",
+    "noAccount": "Nemaš račun?",
+    "registerLink": "Registriraj se",
+    "haveAccount": "Već imaš račun?",
+    "loginLink": "Prijavi se",
+    "errors": {
+      "invalidCredentials": "Pogrešan email ili lozinka.",
+      "emailTaken": "Taj email je već registriran.",
+      "emailInvalid": "Neispravan email.",
+      "passwordLength": "Lozinka mora imati 8–128 znakova.",
+      "generic": "Nešto je pošlo po zlu. Pokušaj ponovno."
+    }
+  },
+  "dashboard": {
+    "title": "Moji eventi",
+    "logout": "Odjava",
+    "newEvent": "Novi event",
+    "loading": "Učitavam…",
+    "empty": "Još nemaš evenata. Kreni s „Novi event”.",
+    "loadError": "Ne mogu učitati evente.",
+    "retry": "Pokušaj ponovno",
+    "uploadStart": "Upload počinje",
+    "copyLink": "Kopiraj link",
+    "copied": "Kopirano!",
+    "status": {
+      "Draft": "Skica",
+      "Active": "Aktivan",
+      "UploadClosed": "Upload zatvoren",
+      "Expired": "Isteklo",
+      "Deleted": "Obrisano"
+    },
+    "activate": "Aktiviraj event",
+    "activating": "Aktiviram…",
+    "draftHint": "Event je skica — aktiviraj ga da guest link proradi.",
+    "activateError": "Aktivacija nije uspjela. Pokušaj ponovno."
+  },
+  "newEvent": {
+    "back": "Natrag",
+    "title": "Novi event",
+    "titleLabel": "Naziv",
+    "titlePlaceholder": "npr. Iva i Ivan, 24.6.2027.",
+    "dateLabel": "Datum početka uploada",
+    "dateHint": "Od tog datuma gosti mogu slati fotke i video.",
+    "createButton": "Kreiraj event",
+    "creating": "Kreiram…",
+    "errors": {
+      "titleRequired": "Upiši naziv eventa.",
+      "session": "Sesija je istekla — prijavi se ponovno.",
+      "generic": "Kreiranje nije uspjelo. Pokušaj ponovno."
+    }
+  },
+  "eventDetail": {
+    "back": "Natrag",
+    "loading": "Učitavam…",
+    "notFound": "Event nije pronađen.",
+    "uploadStart": "Upload počinje",
+    "draftHint": "Event je skica — aktiviraj ga da guest link i QR prorade.",
+    "activate": "Aktiviraj event",
+    "activating": "Aktiviram…",
+    "activateError": "Aktivacija nije uspjela.",
+    "guestLink": "Guest link",
+    "copy": "Kopiraj",
+    "copied": "Kopirano!",
+    "open": "Otvori guest stranicu",
+    "qrTitle": "QR kod",
+    "qrHint": "Isprintaj i stavi na stolove — gosti skeniraju i uploadaju.",
+    "qrDownload": "Preuzmi QR (PNG)",
+    "qrLoading": "Učitavam QR…",
+    "cover": "Naslovna fotografija",
+    "coverNone": "Još nema naslovne fotografije.",
+    "coverUpload": "Dodaj naslovnu",
+    "coverReplace": "Zamijeni naslovnu",
+    "coverUploading": "Uploadam…",
+    "coverTypeError": "Podržani su JPEG, PNG i WebP.",
+    "coverSizeError": "Slika je veća od 20 MB.",
+    "coverError": "Upload naslovne nije uspio."
   }
 }

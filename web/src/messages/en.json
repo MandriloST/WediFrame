@@ -21,7 +21,7 @@
   "guest": {
     "eyebrow": "Share your memories",
     "addPhotos": "Add photos",
-    "videoComingSoon": "Video upload is coming soon",
+    "mediaHint": "Photos and video",
     "uploadClosed": "Uploads are closed — thank you to everyone who shared! The gallery stays available.",
     "privacyNotice": "Photos you send will be visible to all guests with this event link and stored until the gallery expires. We use them for nothing else.",
     "privacyLink": "Privacy policy",
@@ -50,5 +50,90 @@
       "next": "Next",
       "unsupported": "A preview of this photo is coming soon."
     }
+  },
+  "auth": {
+    "loginTitle": "Sign in to your dashboard",
+    "registerTitle": "Create an account",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 8 characters.",
+    "loginButton": "Sign in",
+    "registerButton": "Sign up",
+    "pleaseWait": "One moment…",
+    "noAccount": "No account?",
+    "registerLink": "Sign up",
+    "haveAccount": "Already have an account?",
+    "loginLink": "Sign in",
+    "errors": {
+      "invalidCredentials": "Wrong email or password.",
+      "emailTaken": "That email is already registered.",
+      "emailInvalid": "Invalid email.",
+      "passwordLength": "Password must be 8–128 characters.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "dashboard": {
+    "title": "My events",
+    "logout": "Sign out",
+    "newEvent": "New event",
+    "loading": "Loading…",
+    "empty": "No events yet. Start with “New event”.",
+    "loadError": "Couldn't load events.",
+    "retry": "Try again",
+    "uploadStart": "Upload starts",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "status": {
+      "Draft": "Draft",
+      "Active": "Active",
+      "UploadClosed": "Upload closed",
+      "Expired": "Expired",
+      "Deleted": "Deleted"
+    },
+    "activate": "Activate event",
+    "activating": "Activating…",
+    "draftHint": "This event is a draft — activate it so the guest link works.",
+    "activateError": "Activation failed. Please try again."
+  },
+  "newEvent": {
+    "back": "Back",
+    "title": "New event",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Iva & Ivan, 24 Jun 2027",
+    "dateLabel": "Upload start date",
+    "dateHint": "From this date guests can send photos and video.",
+    "createButton": "Create event",
+    "creating": "Creating…",
+    "errors": {
+      "titleRequired": "Enter an event title.",
+      "session": "Session expired — please sign in again.",
+      "generic": "Couldn't create the event. Please try again."
+    }
+  },
+  "eventDetail": {
+    "back": "Back",
+    "loading": "Loading…",
+    "notFound": "Event not found.",
+    "uploadStart": "Upload starts",
+    "draftHint": "This event is a draft — activate it so the guest link and QR work.",
+    "activate": "Activate event",
+    "activating": "Activating…",
+    "activateError": "Activation failed.",
+    "guestLink": "Guest link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "open": "Open guest page",
+    "qrTitle": "QR code",
+    "qrHint": "Print it for the tables — guests scan and upload.",
+    "qrDownload": "Download QR (PNG)",
+    "qrLoading": "Loading QR…",
+    "cover": "Cover photo",
+    "coverNone": "No cover photo yet.",
+    "coverUpload": "Add cover",
+    "coverReplace": "Replace cover",
+    "coverUploading": "Uploading…",
+    "coverTypeError": "JPEG, PNG and WebP are supported.",
+    "coverSizeError": "The image is larger than 20 MB.",
+    "coverError": "Cover upload failed."
   }
 }

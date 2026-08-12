@@ -37,6 +37,11 @@ public sealed class MediaItemConfiguration : IEntityTypeConfiguration<MediaItem>
 
         builder.Property(x => x.ThumbnailKey).HasMaxLength(256);
 
+        // R2 multipart upload ids are opaque and can be long (500+ chars),
+        // well past a varchar(256) — store as unbounded text.
+        builder.Property(x => x.MultipartUploadId).HasColumnType("text");
+        ///builder.Property(x => x.MultipartUploadId).HasMaxLength(256);
+
         // Stored as text; default backfills existing rows to Pending on migration.
         builder.Property(x => x.ThumbnailStatus)
             .HasConversion<string>()

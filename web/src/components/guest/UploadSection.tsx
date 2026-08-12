@@ -6,9 +6,16 @@ import {
   MAX_ITEMS_PER_REQUEST,
   PHOTO_ALLOWED_TYPES,
   PHOTO_MAX_BYTES,
+  VIDEO_ALLOWED_TYPES,
+  VIDEO_MAX_BYTES,
+  abortVideoUpload,
+  completeVideoUpload,
   confirmUpload,
+  initVideoUpload,
+  putPartToStorage,
   putToStorage,
   startUploads,
+  type VideoPartInput,
 } from "@/lib/guestApi";
 
 type ItemStatus =
@@ -63,6 +70,25 @@ async function heicToJpegFile(file: File): Promise<File> {
   return new File([jpeg], toJpgName(file.name), { type: "image/jpeg" });
 }
 
+/** PUT one multipart chunk with a few retries; resolves to the part's ETag. */
+async function putPartWithRetry(
+  url: string,
+  chunk: Blob,
+  onProgress: (loadedBytes: number) => void,
+  attempts = 3,
+): Promise<string> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await putPartToStorage(url, chunk, onProgress);
+    } catch (e) {
+      lastError = e;
+      onProgress(0); // reset this part's progress before retrying
+    }
+  }
+  throw lastError ?? new Error("part upload failed");
+}
+
 /**
  * A local queue id. crypto.randomUUID() exists only in secure contexts
  * (HTTPS/localhost), so it's undefined when testing over plain http on a LAN
@@ -83,10 +109,15 @@ function newLocalId(): string {
   return `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** Some Androids report an empty file.type — fall back to the extension. */
+function isVideoType(contentType: string): boolean {
+  return contentType.toLowerCase().startsWith("video/");
+}
+
+/** Some phones report an empty file.type — fall back to the extension. */
 function resolveContentType(file: File): string | null {
-  if (file.type && PHOTO_ALLOWED_TYPES.has(file.type.toLowerCase())) {
-    return file.type.toLowerCase();
+  const type = file.type?.toLowerCase();
+  if (type && (PHOTO_ALLOWED_TYPES.has(type) || VIDEO_ALLOWED_TYPES.has(type))) {
+    return type;
   }
   const ext = file.name.split(".").pop()?.toLowerCase();
   const byExt: Record<string, string> = {
@@ -97,6 +128,9 @@ function resolveContentType(file: File): string | null {
     heic: "image/heic",
     heif: "image/heif",
     gif: "image/gif",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
   };
   return ext && byExt[ext] ? byExt[ext] : null;
 }
@@ -135,9 +169,66 @@ export function UploadSection({
     );
   }, []);
 
+  /** Multipart video upload: init → PUT each part (with retry) → complete. */
+  const uploadVideo = useCallback(
+    async (item: QueueItem, name: string | null) => {
+      let mediaId: string | null = null;
+      try {
+        patch(item.id, { status: "uploading", progress: 0, errorKey: null });
+
+        const init = await initVideoUpload(token, {
+          contentType: item.contentType,
+          sizeBytes: item.file.size,
+          fileName: item.file.name || null,
+          guestName: name,
+        });
+        mediaId = init.mediaId;
+
+        const partSize = init.partSizeBytes;
+        const total = item.file.size;
+        const loaded = new Array<number>(init.parts.length).fill(0);
+        const report = () => {
+          const sum = loaded.reduce((a, b) => a + b, 0);
+          patch(item.id, { progress: Math.min(1, sum / total) });
+        };
+
+        const etags: VideoPartInput[] = [];
+        for (const part of init.parts) {
+          const start = (part.partNumber - 1) * partSize;
+          const end = Math.min(start + partSize, total);
+          const chunk = item.file.slice(start, end);
+          const etag = await putPartWithRetry(part.url, chunk, (bytes) => {
+            loaded[part.partNumber - 1] = bytes;
+            report();
+          });
+          loaded[part.partNumber - 1] = end - start;
+          report();
+          etags.push({ partNumber: part.partNumber, etag });
+        }
+
+        patch(item.id, { status: "confirming", progress: 1 });
+        const confirmed = await completeVideoUpload(token, mediaId, etags);
+        patch(item.id, { status: "done" });
+        onConfirmedRef.current?.({
+          mediaId: confirmed.mediaId,
+          file: item.file,
+          contentType: item.contentType,
+        });
+      } catch {
+        patch(item.id, { status: "failed", errorKey: "uploadFailed" });
+        if (mediaId) void abortVideoUpload(token, mediaId);
+      }
+    },
+    [token, patch],
+  );
+
   /** Presign + PUT + confirm for one item. Runs with limited concurrency. */
   const uploadOne = useCallback(
     async (item: QueueItem, name: string | null) => {
+      if (isVideoType(item.contentType)) {
+        await uploadVideo(item, name);
+        return;
+      }
       try {
         // HEIC/HEIF → JPEG in the browser first (browsers can't show HEIC and
         // the server can't thumbnail it). Everything downstream sees a JPEG.
@@ -185,7 +276,7 @@ export function UploadSection({
         patch(item.id, { status: "failed", errorKey: "uploadFailed" });
       }
     },
-    [token, patch],
+    [token, patch, uploadVideo],
   );
 
   /** Simple pump: keeps up to CONCURRENCY uploads in flight. */
@@ -214,7 +305,11 @@ export function UploadSection({
       const files = Array.from(fileList).slice(0, MAX_ITEMS_PER_REQUEST);
       const fresh: QueueItem[] = files.map((file) => {
         const contentType = resolveContentType(file);
-        const tooBig = file.size <= 0 || file.size > PHOTO_MAX_BYTES;
+        const maxBytes =
+          contentType && isVideoType(contentType)
+            ? VIDEO_MAX_BYTES
+            : PHOTO_MAX_BYTES;
+        const tooBig = file.size <= 0 || file.size > maxBytes;
         return {
           id: newLocalId(),
           file,
@@ -282,7 +377,7 @@ export function UploadSection({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         multiple
         className="sr-only"
         onChange={(e) => {
@@ -299,7 +394,7 @@ export function UploadSection({
         {t("addPhotos")}
       </button>
       <p className="mt-2 text-center text-xs text-[#A8A29E]">
-        {t("videoComingSoon")}
+        {t("mediaHint")}
       </p>
 
       {/* First-visit privacy notice + optional name (PROJECT.md §4). */}

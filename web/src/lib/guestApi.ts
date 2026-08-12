@@ -65,6 +65,23 @@ export const PHOTO_ALLOWED_TYPES = new Set([
 export const MAX_ITEMS_PER_REQUEST = 30;
 export const GALLERY_PAGE_SIZE = 24;
 
+/** Mirrors VideoRules on the backend. */
+export const VIDEO_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+export const VIDEO_ALLOWED_TYPES = new Set([
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+]);
+
+export type VideoInitResponse = {
+  mediaId: string;
+  uploadId: string;
+  partSizeBytes: number;
+  parts: { partNumber: number; url: string }[];
+};
+
+export type VideoPartInput = { partNumber: number; etag: string };
+
 /**
  * Types a browser can render in an <img>. HEIC/HEIF are accepted on upload
  * (iPhones produce them) but cannot be displayed until the thumbnail job
@@ -156,4 +173,95 @@ export function putToStorage(
     xhr.onerror = () => reject(new Error("storage PUT network error"));
     xhr.send(file);
   });
+}
+
+// --- Video multipart upload --------------------------------------------------
+
+/** Start a video upload: the server returns a presigned PUT URL per part. */
+export async function initVideoUpload(
+  token: string,
+  req: {
+    contentType: string;
+    sizeBytes: number;
+    fileName: string | null;
+    guestName: string | null;
+  },
+): Promise<VideoInitResponse> {
+  const res = await fetch(
+    `${API_BASE}/guest/${encodeURIComponent(token)}/videos`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+  );
+  if (!res.ok) throw new Error(`video init failed: ${res.status}`);
+  return (await res.json()) as VideoInitResponse;
+}
+
+/**
+ * PUT one part directly to R2 and return its ETag. The ETag identifies the part
+ * at completion time. Reading it requires R2 CORS to expose the ETag header
+ * (ExposeHeaders: ["ETag"]).
+ */
+export function putPartToStorage(
+  uploadUrl: string,
+  chunk: Blob,
+  onProgress: (loadedBytes: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    // No Content-Type header: the part presign isn't signed with one, and
+    // sending a slice as-is keeps the request simple.
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const etag = xhr.getResponseHeader("ETag");
+        if (etag) resolve(etag);
+        else reject(new Error("missing ETag (check R2 CORS ExposeHeaders)"));
+      } else {
+        reject(new Error(`part PUT failed: ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("part PUT network error"));
+    xhr.send(chunk);
+  });
+}
+
+/** Assemble the uploaded parts into the final video and confirm it. */
+export async function completeVideoUpload(
+  token: string,
+  mediaId: string,
+  parts: VideoPartInput[],
+): Promise<ConfirmResponse> {
+  const res = await fetch(
+    `${API_BASE}/guest/${encodeURIComponent(token)}/videos/${mediaId}/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        parts: parts.map((p) => ({ partNumber: p.partNumber, etag: p.etag })),
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`video complete failed: ${res.status}`);
+  return (await res.json()) as ConfirmResponse;
+}
+
+/** Cancel an in-progress video upload (best-effort cleanup of the R2 multipart). */
+export async function abortVideoUpload(
+  token: string,
+  mediaId: string,
+): Promise<void> {
+  try {
+    await fetch(
+      `${API_BASE}/guest/${encodeURIComponent(token)}/videos/${mediaId}/abort`,
+      { method: "POST" },
+    );
+  } catch {
+    // best-effort
+  }
 }
