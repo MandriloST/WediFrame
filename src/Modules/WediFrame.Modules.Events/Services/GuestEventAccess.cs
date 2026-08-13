@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WediFrame.Modules.Billing.Services;
 using WediFrame.Modules.Events.Domain;
 
 namespace WediFrame.Modules.Events.Services;
@@ -34,6 +35,16 @@ public enum GuestUploadState
     Closed,
 }
 
+/// <summary>
+/// Per-event upload quotas, resolved from the event's package (Billing, M3).
+/// Null on a legacy event without a package → Media falls back to per-file caps only.
+/// </summary>
+public sealed record GuestUploadLimits(
+    int MaxPhotoCount,
+    long MaxVideoTotalBytes,
+    long MaxTotalBytes,
+    long MaxFileBytes);
+
 /// <summary>Read-only slice of an event that guest-facing features need.</summary>
 public sealed record GuestEventContext(
     Guid EventId,
@@ -42,6 +53,7 @@ public sealed record GuestEventContext(
     EventStatus Status,
     DateOnly UploadStartDate,
     DateOnly? UploadEndsAt,
+    GuestUploadLimits? Limits,
     string? CoverPhotoKey)
 {
     /// <summary>
@@ -64,7 +76,7 @@ public sealed record GuestEventContext(
     public bool IsUploadOpen(DateOnly today) => UploadStateFor(today) == GuestUploadState.Open;
 }
 
-public sealed class GuestEventAccess(DbContext db) : IGuestEventAccess
+public sealed class GuestEventAccess(DbContext db, IPackageCatalog packages) : IGuestEventAccess
 {
     public async Task<GuestEventContext?> FindByTokenAsync(string token, CancellationToken ct = default)
     {
@@ -76,10 +88,40 @@ public sealed class GuestEventAccess(DbContext db) : IGuestEventAccess
         }
 
         // Visibility rule (Decision Log v7): guests see Active/UploadClosed only.
-        return await db.Set<Event>()
+        var row = await db.Set<Event>()
             .Where(e => e.GuestToken == token
                 && (e.Status == EventStatus.Active || e.Status == EventStatus.UploadClosed))
-            .Select(e => new GuestEventContext(e.Id, e.Title, e.Type, e.Status, e.UploadStartDate, e.UploadEndsAt, e.CoverPhotoKey))
+            .Select(e => new
+            {
+                e.Id,
+                e.Title,
+                e.Type,
+                e.Status,
+                e.UploadStartDate,
+                e.UploadEndsAt,
+                e.PackageId,
+                e.CoverPhotoKey,
+            })
             .SingleOrDefaultAsync(ct);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        // Resolve package quotas via Billing (no direct Package access — module boundary).
+        GuestUploadLimits? limits = null;
+        if (row.PackageId is { } packageId
+            && await packages.GetByIdAsync(packageId, ct) is { } package)
+        {
+            limits = new GuestUploadLimits(
+                package.MaxPhotoCount,
+                package.MaxVideoTotalBytes,
+                package.MaxTotalBytes,
+                package.MaxFileBytes);
+        }
+
+        return new GuestEventContext(
+            row.Id, row.Title, row.Type, row.Status, row.UploadStartDate, row.UploadEndsAt, limits, row.CoverPhotoKey);
     }
 }

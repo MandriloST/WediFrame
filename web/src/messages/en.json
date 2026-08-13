@@ -42,6 +42,10 @@
     "retry": "Try again",
     "errors": {
       "uploadFailed": "Sending failed — check your connection and try again.",
+      "quotaPhotoCount": "The photo limit for this event has been reached.",
+      "quotaVideoBytes": "The video limit for this event has been reached.",
+      "quotaTotalBytes": "The total storage limit for this event has been reached.",
+      "uploadClosedError": "Uploads were closed in the meantime.",
       "typeUnsupported": "This file type is not supported.",
       "fileTooLarge": "The photo is larger than 50 MB.",
       "prepareFailed": "HEIC conversion failed — please try again."

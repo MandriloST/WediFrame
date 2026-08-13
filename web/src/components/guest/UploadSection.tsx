@@ -9,6 +9,7 @@ import {
   PHOTO_MAX_BYTES,
   VIDEO_ALLOWED_TYPES,
   VIDEO_MAX_BYTES,
+  GuestUploadError,
   abortVideoUpload,
   completeVideoUpload,
   confirmUpload,
@@ -120,6 +121,27 @@ function parseYmd(value: string): Date {
   return new Date(y || 1970, (m || 1) - 1, d || 1);
 }
 
+/** Map a backend upload error to an i18n key under guest.errors. */
+function uploadErrorKey(e: unknown): string {
+  if (e instanceof GuestUploadError) {
+    switch (e.code) {
+      case "media.quota_photo_count":
+        return "quotaPhotoCount";
+      case "media.quota_video_bytes":
+        return "quotaVideoBytes";
+      case "media.quota_total_bytes":
+        return "quotaTotalBytes";
+      case "media.upload_closed":
+        return "uploadClosedError";
+      case "media.file_too_large":
+        return "fileTooLarge";
+      case "media.type_unsupported":
+        return "typeUnsupported";
+    }
+  }
+  return "uploadFailed";
+}
+
 /** Some phones report an empty file.type — fall back to the extension. */
 function resolveContentType(file: File): string | null {
   const type = file.type?.toLowerCase();
@@ -224,8 +246,8 @@ export function UploadSection({
           file: item.file,
           contentType: item.contentType,
         });
-      } catch {
-        patch(item.id, { status: "failed", errorKey: "uploadFailed" });
+      } catch (e) {
+        patch(item.id, { status: "failed", errorKey: uploadErrorKey(e) });
         if (mediaId) void abortVideoUpload(token, mediaId);
       }
     },
@@ -282,8 +304,8 @@ export function UploadSection({
           file,
           contentType,
         });
-      } catch {
-        patch(item.id, { status: "failed", errorKey: "uploadFailed" });
+      } catch (e) {
+        patch(item.id, { status: "failed", errorKey: uploadErrorKey(e) });
       }
     },
     [token, patch, uploadVideo],

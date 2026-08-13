@@ -42,6 +42,10 @@
     "retry": "Pokušaj ponovno",
     "errors": {
       "uploadFailed": "Slanje nije uspjelo — provjerite vezu i pokušajte ponovno.",
+      "quotaPhotoCount": "Dosegnut je limit broja fotografija za ovaj event.",
+      "quotaVideoBytes": "Dosegnut je limit za video na ovom eventu.",
+      "quotaTotalBytes": "Dosegnut je ukupni limit prostora za ovaj event.",
+      "uploadClosedError": "Upload je u međuvremenu zatvoren.",
       "typeUnsupported": "Ovaj tip datoteke nije podržan.",
       "fileTooLarge": "Fotografija je veća od 50 MB.",
       "prepareFailed": "Pretvorba HEIC-a nije uspjela — pokušajte ponovno."

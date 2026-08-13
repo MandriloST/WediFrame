@@ -111,6 +111,22 @@ public static class GuestMediaEndpoints
             return Results.ValidationProblem(errors);
         }
 
+        // Package quota (M3): reject the batch early against pending+confirmed usage.
+        // Authoritative re-check with the verified size happens at confirm.
+        if (ev.Limits is { } limits)
+        {
+            var addPhotoBytes = items.Sum(i => i.SizeBytes);
+            var usage = await GetUsageAsync(db, ev.EventId, confirmedOnly: false, ct);
+            var quotaError = GuestQuota.CheckAddition(limits, usage, items.Count, addPhotoBytes, 0);
+            if (quotaError is not null)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["event"] = [quotaError],
+                });
+            }
+        }
+
         // Create Pending items + presigned URLs.
         var responses = new List<GuestUploadItemResponse>(items.Count);
         var expiresAt = now.Add(UploadUrlExpiry);
@@ -203,6 +219,25 @@ public static class GuestMediaEndpoints
             {
                 ["mediaId"] = [info.SizeBytes == 0 ? "media.file_empty" : "media.file_too_large"],
             });
+        }
+
+        // Authoritative quota (M3): confirmed usage must never exceed the package.
+        // This Pending item is excluded (confirmedOnly) — we add its verified size.
+        if (ev.Limits is { } limits)
+        {
+            var usage = await GetUsageAsync(db, ev.EventId, confirmedOnly: true, ct);
+            var quotaError = GuestQuota.CheckAddition(limits, usage, 1, info.SizeBytes, 0);
+            if (quotaError is not null)
+            {
+                await storage.DeleteAsync(item.ObjectKey, ct);
+                item.UploadStatus = MediaUploadStatus.Failed;
+                await db.SaveChangesAsync(ct);
+
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["event"] = [quotaError],
+                });
+            }
         }
 
         item.UploadStatus = MediaUploadStatus.Confirmed;
@@ -374,6 +409,29 @@ public static class GuestMediaEndpoints
             return Results.ValidationProblem(errors);
         }
 
+        // Package quota (M3): per-file ceiling + total video/overall bytes, early.
+        // Authoritative re-check with the verified size happens at complete.
+        if (ev.Limits is { } limits)
+        {
+            if (request.SizeBytes > limits.MaxFileBytes)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["sizeBytes"] = ["media.file_too_large"],
+                });
+            }
+
+            var usage = await GetUsageAsync(db, ev.EventId, confirmedOnly: false, ct);
+            var quotaError = GuestQuota.CheckAddition(limits, usage, 0, 0, request.SizeBytes);
+            if (quotaError is not null)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["event"] = [quotaError],
+                });
+            }
+        }
+
         var mediaId = Guid.NewGuid();
         var key = VideoRules.NewKey(ev.EventId, mediaId, contentType);
         var uploadId = await storage.CreateMultipartUploadAsync(key, contentType, ct);
@@ -483,6 +541,25 @@ public static class GuestMediaEndpoints
             });
         }
 
+        // Authoritative quota (M3): confirmed usage must never exceed the package.
+        if (ev.Limits is { } limits)
+        {
+            var usage = await GetUsageAsync(db, ev.EventId, confirmedOnly: true, ct);
+            var quotaError = GuestQuota.CheckAddition(limits, usage, 0, 0, info.SizeBytes);
+            if (quotaError is not null)
+            {
+                await storage.DeleteAsync(item.ObjectKey, ct);
+                item.UploadStatus = MediaUploadStatus.Failed;
+                item.MultipartUploadId = null;
+                await db.SaveChangesAsync(ct);
+
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["event"] = [quotaError],
+                });
+            }
+        }
+
         item.UploadStatus = MediaUploadStatus.Confirmed;
         item.SizeBytes = info.SizeBytes;
         item.ConfirmedAt = timeProvider.GetUtcNow();
@@ -548,5 +625,32 @@ public static class GuestMediaEndpoints
     {
         var trimmed = value?.Trim();
         return string.IsNullOrEmpty(trimmed) ? null : trimmed[..Math.Min(trimmed.Length, max)];
+    }
+
+    /// <summary>
+    /// Aggregate an event's usage for quota math. <paramref name="confirmedOnly"/>:
+    /// true = authoritative (only Confirmed items, verified sizes) for confirm/complete;
+    /// false = pending+confirmed (declared sizes reserve capacity) for presign/init.
+    /// Soft-deleted and Failed items never count.
+    /// </summary>
+    private static async Task<MediaUsage> GetUsageAsync(
+        DbContext db, Guid eventId, bool confirmedOnly, CancellationToken ct)
+    {
+        var q = db.Set<MediaItem>().Where(m => m.EventId == eventId && m.SoftDeletedAt == null);
+        q = confirmedOnly
+            ? q.Where(m => m.UploadStatus == MediaUploadStatus.Confirmed)
+            : q.Where(m => m.UploadStatus != MediaUploadStatus.Failed);
+
+        var agg = await q
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                PhotoCount = g.Count(m => m.Type == MediaType.Photo),
+                TotalBytes = g.Sum(m => m.SizeBytes),
+                VideoBytes = g.Sum(m => m.Type == MediaType.Video ? m.SizeBytes : 0L),
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return agg is null ? default : new MediaUsage(agg.PhotoCount, agg.TotalBytes, agg.VideoBytes);
     }
 }
