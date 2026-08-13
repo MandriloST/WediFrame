@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Npgsql EF Core provider brings Microsoft.EntityFrameworkCore.Relational
+         (ToTable, HasData and other relational extensions) — convention for every
+         module that owns entities. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
   </ItemGroup>
 </Project>

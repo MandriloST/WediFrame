@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WediFrame.Modules.Billing.Endpoints;
 using WediFrame.Shared.Modules;
 
 namespace WediFrame.Modules.Billing;
 
 /// <summary>
 /// Packages, Free/Trial activation, Stripe checkout + webhook, HR fiscalization + R1 invoice data.
-/// Skeleton only — services and endpoints arrive with their milestone.
+/// M3: Package catalogue (entities + seed + public GET /packages). Checkout/limits arrive next.
 /// </summary>
 public sealed class BillingModule : IModule
 {
@@ -19,5 +20,5 @@ public sealed class BillingModule : IModule
         => services;
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
-        => endpoints;
+        => endpoints.MapPackageEndpoints();
 }

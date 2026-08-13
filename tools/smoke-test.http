@@ -123,3 +123,9 @@ Content-Type: application/json
 }
 
 ### 12c) Confirm bez PUT-a -> media.not_uploaded (item ostaje Pending, može retry)
+
+### ─────────────────────────────────────────────────────────────────────────
+### M3 — Paketi (v22). Javni endpoint, ne treba auth.
+### Očekivano: 5 paketa (free, essential, classic, premium, brzi-i-zestoki),
+### poredani po sortOrder, s limitima u bytovima i cijenom u centima.
+GET {{baseUrl}}/packages
