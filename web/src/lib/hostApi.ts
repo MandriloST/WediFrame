@@ -198,6 +198,20 @@ export async function activateEvent(id: string): Promise<HostEvent> {
   return (await res.json()) as HostEvent;
 }
 
+/** Close the upload period early (Active → UploadClosed): gallery stays, uploads stop. */
+export async function closeUpload(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/close-upload`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
+/** Reopen a closed upload period (UploadClosed → Active). */
+export async function reopenUpload(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/reopen-upload`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
 export async function getEvent(id: string): Promise<HostEvent> {
   const res = await authFetch(`/events/${id}`);
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));

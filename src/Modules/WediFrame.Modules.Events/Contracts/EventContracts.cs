@@ -32,8 +32,10 @@ public sealed record CoverConfirmRequest(string Key);
 
 /// <summary>
 /// Public event info for the guest page (/e/{token}). No ids, no owner data —
-/// only what the guest page renders. UploadOpen is provisional until packages
-/// exist (M3): true when the event is Active and today >= T0.
+/// only what the guest page renders. <see cref="UploadState"/> is one of
+/// "NotStarted" | "Open" | "Closed" and drives the upload button; the gallery
+/// shows in every state. <see cref="UploadOpen"/> is kept as the boolean shortcut
+/// (== UploadState "Open") for convenience.
 /// </summary>
 public sealed record GuestEventInfoResponse(
     string Title,
@@ -41,4 +43,5 @@ public sealed record GuestEventInfoResponse(
     DateOnly UploadStartDate,
     string Status,
     string? CoverPhotoUrl,
-    bool UploadOpen);
+    bool UploadOpen,
+    string UploadState);

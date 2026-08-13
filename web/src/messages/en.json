@@ -23,6 +23,7 @@
     "addPhotos": "Add photos",
     "mediaHint": "Photos and video",
     "uploadClosed": "Uploads are closed — thank you to everyone who shared! The gallery stays available.",
+    "uploadNotStarted": "Uploads haven't started yet. Sharing photos and video opens on {date}.",
     "privacyNotice": "Photos you send will be visible to all guests with this event link and stored until the gallery expires. We use them for nothing else.",
     "privacyLink": "Privacy policy",
     "namePlaceholder": "Your name (optional)",
@@ -136,7 +137,15 @@
     "coverTypeError": "JPEG, PNG and WebP are supported.",
     "coverSizeError": "The image is larger than 20 MB.",
     "coverError": "Cover upload failed.",
-    "manageGallery": "Manage gallery"
+    "manageGallery": "Manage gallery",
+    "uploadPeriod": "Upload period",
+    "uploadOpenHint": "Uploads are open — guests can send photos and video. You can close it early.",
+    "uploadClosedHint": "Uploads are closed — guests can see the gallery but can no longer send.",
+    "closeUpload": "Close uploads",
+    "closing": "Closing…",
+    "reopenUpload": "Reopen uploads",
+    "reopening": "Reopening…",
+    "uploadPeriodError": "That didn't work. Please try again."
   },
   "hostGallery": {
     "back": "Back",

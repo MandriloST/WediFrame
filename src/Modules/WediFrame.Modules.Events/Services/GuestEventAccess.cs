@@ -18,6 +18,22 @@ public interface IGuestEventAccess
     Task<GuestEventContext?> FindByTokenAsync(string token, CancellationToken ct = default);
 }
 
+/// <summary>
+/// The three states the guest page distinguishes for the upload button.
+/// (The guest never sees Draft/Expired/Deleted — those events aren't guest-visible.)
+/// </summary>
+public enum GuestUploadState
+{
+    /// <summary>Event is Active but today hasn't reached T0 yet — uploads open later.</summary>
+    NotStarted,
+
+    /// <summary>Uploads are accepted right now.</summary>
+    Open,
+
+    /// <summary>Upload period is over — the gallery stays, but no new uploads.</summary>
+    Closed,
+}
+
 /// <summary>Read-only slice of an event that guest-facing features need.</summary>
 public sealed record GuestEventContext(
     Guid EventId,
@@ -28,11 +44,20 @@ public sealed record GuestEventContext(
     string? CoverPhotoKey)
 {
     /// <summary>
-    /// Provisional until packages exist (M3): the upload period end is unknown,
-    /// so "open" = Active status + today has reached T0. The Retention module
-    /// will flip status to UploadClosed once packages define the period.
+    /// Which upload state to show the guest. The period END is still driven by
+    /// status (host closes it now; Retention (M4) will flip the SAME status
+    /// automatically once packages define the period). The START is T0.
     /// </summary>
-    public bool IsUploadOpen(DateOnly today) => Status == EventStatus.Active && today >= UploadStartDate;
+    public GuestUploadState UploadStateFor(DateOnly today) =>
+        Status == EventStatus.UploadClosed ? GuestUploadState.Closed
+        : today < UploadStartDate ? GuestUploadState.NotStarted
+        : GuestUploadState.Open;
+
+    /// <summary>
+    /// Whether an upload is allowed right now. Kept as the single guard Media
+    /// uses — identical to <see cref="UploadStateFor"/> returning Open.
+    /// </summary>
+    public bool IsUploadOpen(DateOnly today) => UploadStateFor(today) == GuestUploadState.Open;
 }
 
 public sealed class GuestEventAccess(DbContext db) : IGuestEventAccess

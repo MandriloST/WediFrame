@@ -10,10 +10,12 @@ import {
   COVER_MAX_BYTES,
   type HostEvent,
   activateEvent,
+  closeUpload,
   confirmCover,
   getEvent,
   getQrPng,
   isAuthed,
+  reopenUpload,
   startCoverUpload,
 } from "@/lib/hostApi";
 
@@ -129,11 +131,70 @@ export default function EventDetailPage() {
           )}
 
           {shareable && (
-            <ShareSection event={event} qrUrl={qrUrl} />
+            <>
+              <ShareSection event={event} qrUrl={qrUrl} />
+              <UploadPeriodSection event={event} onUpdated={setEvent} />
+            </>
           )}
         </>
       )}
     </main>
+  );
+}
+
+function UploadPeriodSection({
+  event,
+  onUpdated,
+}: {
+  event: HostEvent;
+  onUpdated: (e: HostEvent) => void;
+}) {
+  const t = useTranslations("eventDetail");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const closed = event.status === "UploadClosed";
+
+  const toggle = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(false);
+    try {
+      onUpdated(closed ? await reopenUpload(event.id) : await closeUpload(event.id));
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-5 rounded-2xl border border-[#E7E0D8] bg-white p-5">
+      <h2 className="text-sm font-medium text-[#44403C]">{t("uploadPeriod")}</h2>
+      <p className="mt-1 text-xs text-[#A8A29E]">
+        {closed ? t("uploadClosedHint") : t("uploadOpenHint")}
+      </p>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className={`mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition active:scale-[0.99] disabled:opacity-60 ${
+          closed
+            ? "bg-[#7C2D3E] text-white"
+            : "border border-[#7C2D3E] text-[#7C2D3E]"
+        }`}
+      >
+        {busy
+          ? closed
+            ? t("reopening")
+            : t("closing")
+          : closed
+            ? t("reopenUpload")
+            : t("closeUpload")}
+      </button>
+      {error && (
+        <p className="mt-2 text-sm text-[#B4432F]">{t("uploadPeriodError")}</p>
+      )}
+    </section>
   );
 }
 

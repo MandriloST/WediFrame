@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using WediFrame.Modules.Events.Contracts;
 using WediFrame.Modules.Events.Domain;
 using WediFrame.Modules.Events.Services;
+using WediFrame.Shared.Audit;
 using WediFrame.Shared.Auth;
 using WediFrame.Shared.Options;
 using WediFrame.Shared.Storage;
@@ -32,6 +33,8 @@ public static class EventEndpoints
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", GetAsync);
         group.MapPost("/{id:guid}/activate", ActivateAsync);
+        group.MapPost("/{id:guid}/close-upload", CloseUploadAsync);
+        group.MapPost("/{id:guid}/reopen-upload", ReopenUploadAsync);
         group.MapGet("/{id:guid}/qr", GetQrAsync);
         group.MapPost("/{id:guid}/cover", StartCoverUploadAsync);
         group.MapPost("/{id:guid}/cover/confirm", ConfirmCoverAsync);
@@ -327,6 +330,75 @@ public static class EventEndpoints
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["status"] = ["events.cannot_activate"],
+            });
+        }
+
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, ct));
+    }
+
+    /// <summary>
+    /// Host closes the upload period early (Active → UploadClosed): guests keep
+    /// the gallery but can no longer upload. Idempotent for already-closed events.
+    /// Retention (M4) will flip the SAME status automatically once packages define
+    /// the period; this manual control stays useful regardless.
+    /// </summary>
+    private static Task<IResult> CloseUploadAsync(
+        Guid id, ClaimsPrincipal principal, DbContext db,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+        => SetUploadClosedAsync(id, closed: true, principal, db, frontend, storage, timeProvider, ct);
+
+    /// <summary>
+    /// Host reopens a closed upload period (UploadClosed → Active). Idempotent for
+    /// already-open events. Only Active/UploadClosed events can toggle here.
+    /// </summary>
+    private static Task<IResult> ReopenUploadAsync(
+        Guid id, ClaimsPrincipal principal, DbContext db,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+        => SetUploadClosedAsync(id, closed: false, principal, db, frontend, storage, timeProvider, ct);
+
+    private static async Task<IResult> SetUploadClosedAsync(
+        Guid id, bool closed, ClaimsPrincipal principal, DbContext db,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var entity = await db.Set<Event>()
+            .SingleOrDefaultAsync(e => e.Id == id && e.OwnerUserId == userId, ct);
+
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        var target = closed ? EventStatus.UploadClosed : EventStatus.Active;
+        var source = closed ? EventStatus.Active : EventStatus.UploadClosed;
+
+        if (entity.Status == source)
+        {
+            entity.Status = target;
+            db.Set<AuditLogEntry>().Add(new AuditLogEntry
+            {
+                Id = Guid.NewGuid(),
+                OccurredAt = timeProvider.GetUtcNow(),
+                ActorUserId = userId,
+                Action = closed ? "event.upload_closed" : "event.upload_reopened",
+                EntityType = nameof(Event),
+                EntityId = entity.Id.ToString(),
+            });
+            await db.SaveChangesAsync(ct);
+        }
+        else if (entity.Status != target)
+        {
+            // Draft/Expired/Deleted can't toggle the upload period.
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["status"] = [closed ? "events.cannot_close_upload" : "events.cannot_reopen_upload"],
             });
         }
 

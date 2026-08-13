@@ -8,6 +8,9 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080/api/v1";
 
+/** Drives the guest upload button. Gallery shows in every state. */
+export type UploadState = "NotStarted" | "Open" | "Closed";
+
 export type GuestEventInfo = {
   title: string;
   type: string;
@@ -15,6 +18,7 @@ export type GuestEventInfo = {
   status: string;
   coverPhotoUrl: string | null;
   uploadOpen: boolean;
+  uploadState: UploadState;
 };
 
 export type UploadItemRequest = {
