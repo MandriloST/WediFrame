@@ -12,7 +12,7 @@
       "two": "Gosti skeniraju i uploadaju slike i video",
       "three": "Sve uspomene u privatnoj galeriji"
     },
-    "cta": "Uskoro"
+    "cta": "Pogledajte pakete"
   },
   "meta": {
     "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",
@@ -24,6 +24,22 @@
     "classic": { "name": "Klasični" },
     "premium": { "name": "Premium" },
     "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+  },
+  "pricing": {
+    "back": "Natrag na početnu",
+    "title": "Odaberite paket",
+    "subtitle": "Plaćate jednom, po eventu. Bez pretplate.",
+    "perEvent": "po eventu",
+    "free": "Besplatno",
+    "photos": "{count} fotografija",
+    "video": "{size} videa",
+    "total": "{size} ukupno",
+    "uploadFor": "Upload: {duration}",
+    "galleryFor": "Galerija: {duration}",
+    "months": "{n} mj.",
+    "days": "{n} dana",
+    "cta": "Kreiraj event",
+    "unavailable": "Paketi trenutno nisu dostupni. Pokušajte kasnije."
   },
   "guest": {
     "eyebrow": "Podijelite uspomene",

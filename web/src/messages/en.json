@@ -12,7 +12,7 @@
       "two": "Guests scan it and upload photos and videos",
       "three": "All memories in one private gallery"
     },
-    "cta": "Coming soon"
+    "cta": "See packages"
   },
   "meta": {
     "title": "WediFrame — wedding photos and videos in one place",
@@ -24,6 +24,22 @@
     "classic": { "name": "Classic" },
     "premium": { "name": "Premium" },
     "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+  },
+  "pricing": {
+    "back": "Back to home",
+    "title": "Choose a package",
+    "subtitle": "Pay once, per event. No subscription.",
+    "perEvent": "per event",
+    "free": "Free",
+    "photos": "{count} photos",
+    "video": "{size} video",
+    "total": "{size} total",
+    "uploadFor": "Upload: {duration}",
+    "galleryFor": "Gallery: {duration}",
+    "months": "{n} mo",
+    "days": "{n} days",
+    "cta": "Create event",
+    "unavailable": "Packages aren't available right now. Please try later."
   },
   "guest": {
     "eyebrow": "Share your memories",
