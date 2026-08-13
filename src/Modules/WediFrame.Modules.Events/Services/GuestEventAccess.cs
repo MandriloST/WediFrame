@@ -41,17 +41,21 @@ public sealed record GuestEventContext(
     string Type,
     EventStatus Status,
     DateOnly UploadStartDate,
+    DateOnly? UploadEndsAt,
     string? CoverPhotoKey)
 {
     /// <summary>
-    /// Which upload state to show the guest. The period END is still driven by
-    /// status (host closes it now; Retention (M4) will flip the SAME status
-    /// automatically once packages define the period). The START is T0.
+    /// Which upload state to show the guest. Uploads auto-close once the package
+    /// period passes (<see cref="UploadEndsAt"/>) — no Retention job needed for the
+    /// guest-facing behavior; Retention (M4) additionally persists the status flip.
+    /// A host can also close early (status UploadClosed). START is T0.
     /// </summary>
     public GuestUploadState UploadStateFor(DateOnly today) =>
-        Status == EventStatus.UploadClosed ? GuestUploadState.Closed
-        : today < UploadStartDate ? GuestUploadState.NotStarted
-        : GuestUploadState.Open;
+        Status == EventStatus.UploadClosed || (UploadEndsAt is { } end && today > end)
+            ? GuestUploadState.Closed
+            : today < UploadStartDate
+                ? GuestUploadState.NotStarted
+                : GuestUploadState.Open;
 
     /// <summary>
     /// Whether an upload is allowed right now. Kept as the single guard Media
@@ -75,7 +79,7 @@ public sealed class GuestEventAccess(DbContext db) : IGuestEventAccess
         return await db.Set<Event>()
             .Where(e => e.GuestToken == token
                 && (e.Status == EventStatus.Active || e.Status == EventStatus.UploadClosed))
-            .Select(e => new GuestEventContext(e.Id, e.Title, e.Type, e.Status, e.UploadStartDate, e.CoverPhotoKey))
+            .Select(e => new GuestEventContext(e.Id, e.Title, e.Type, e.Status, e.UploadStartDate, e.UploadEndsAt, e.CoverPhotoKey))
             .SingleOrDefaultAsync(ct);
     }
 }

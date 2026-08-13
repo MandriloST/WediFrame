@@ -98,6 +98,28 @@ export const BROWSER_DISPLAYABLE_TYPES = new Set([
   "image/gif",
 ]);
 
+/** Public package for the pricing page / event wizard (GET /packages). */
+export type PublicPackage = {
+  slug: string;
+  name: string;
+  priceCents: number;
+  currency: string;
+  maxPhotoCount: number;
+  maxVideoTotalBytes: number;
+  maxTotalBytes: number;
+  maxFileBytes: number;
+  uploadPeriodDays: number;
+  retentionDays: number;
+  sortOrder: number;
+};
+
+/** Public catalogue of active packages (no auth). */
+export async function getPackages(): Promise<PublicPackage[]> {
+  const res = await fetch(`${API_BASE}/packages`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`packages failed: ${res.status}`);
+  return (await res.json()) as PublicPackage[];
+}
+
 export async function getGuestEvent(
   token: string,
 ): Promise<GuestEventInfo | null> {

@@ -36,5 +36,8 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
 
         // Host dashboard: "my events".
         builder.HasIndex(x => x.OwnerUserId);
+
+        // Retention (M4) sweeps events by expiry.
+        builder.HasIndex(x => x.ExpiresAt);
     }
 }

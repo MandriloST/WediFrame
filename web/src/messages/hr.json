@@ -18,6 +18,13 @@
     "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",
     "description": "Privatna galerija za vaše vjenčanje. Gosti dijele fotografije i video bez aplikacije i registracije — samo skeniraju QR kod."
   },
+  "packages": {
+    "free": { "name": "Probni" },
+    "essential": { "name": "Osnovni" },
+    "classic": { "name": "Klasični" },
+    "premium": { "name": "Premium" },
+    "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+  },
   "guest": {
     "eyebrow": "Podijelite uspomene",
     "addPhotos": "Dodaj fotografije",
@@ -106,8 +113,17 @@
     "dateHint": "Od tog datuma gosti mogu slati fotke i video.",
     "createButton": "Kreiraj event",
     "creating": "Kreiram…",
+    "packageLabel": "Paket",
+    "packagesLoading": "Učitavam pakete…",
+    "free": "Besplatno",
+    "specPhotos": "{count} fotki",
+    "specVideo": "{size} videa",
+    "specUpload": "{days} dana za upload",
+    "specStorage": "{days} dana pohrane",
+    "paidNote": "Plaćanje stiže uskoro — za sada aktiviraj Besplatni paket.",
     "errors": {
       "titleRequired": "Upiši naziv eventa.",
+      "packageInvalid": "Odabrani paket nije dostupan.",
       "session": "Sesija je istekla — prijavi se ponovno.",
       "generic": "Kreiranje nije uspjelo. Pokušaj ponovno."
     }
@@ -138,6 +154,9 @@
     "coverSizeError": "Slika je veća od 20 MB.",
     "coverError": "Upload naslovne nije uspio.",
     "manageGallery": "Upravljaj galerijom",
+    "package": "Paket",
+    "uploadEnds": "Upload do",
+    "expires": "Galerija do",
     "uploadPeriod": "Upload period",
     "uploadOpenHint": "Upload je otvoren — gosti mogu slati fotke i video. Možeš ga zatvoriti ranije.",
     "uploadClosedHint": "Upload je zatvoren — gosti vide galeriju, ali više ne mogu slati.",

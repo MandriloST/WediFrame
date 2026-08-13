@@ -18,6 +18,13 @@
     "title": "WediFrame — wedding photos and videos in one place",
     "description": "A private gallery for your wedding. Guests share photos and videos with no app and no sign-up — they just scan a QR code."
   },
+  "packages": {
+    "free": { "name": "Free" },
+    "essential": { "name": "Essential" },
+    "classic": { "name": "Classic" },
+    "premium": { "name": "Premium" },
+    "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+  },
   "guest": {
     "eyebrow": "Share your memories",
     "addPhotos": "Add photos",
@@ -106,8 +113,17 @@
     "dateHint": "From this date guests can send photos and video.",
     "createButton": "Create event",
     "creating": "Creating…",
+    "packageLabel": "Package",
+    "packagesLoading": "Loading packages…",
+    "free": "Free",
+    "specPhotos": "{count} photos",
+    "specVideo": "{size} video",
+    "specUpload": "{days} days to upload",
+    "specStorage": "{days} days of storage",
+    "paidNote": "Payment is coming soon — for now activate the Free package.",
     "errors": {
       "titleRequired": "Enter an event title.",
+      "packageInvalid": "The selected package isn't available.",
       "session": "Session expired — please sign in again.",
       "generic": "Couldn't create the event. Please try again."
     }
@@ -138,6 +154,9 @@
     "coverSizeError": "The image is larger than 20 MB.",
     "coverError": "Cover upload failed.",
     "manageGallery": "Manage gallery",
+    "package": "Package",
+    "uploadEnds": "Uploads until",
+    "expires": "Gallery until",
     "uploadPeriod": "Upload period",
     "uploadOpenHint": "Uploads are open — guests can send photos and video. You can close it early.",
     "uploadClosedHint": "Uploads are closed — guests can see the gallery but can no longer send.",

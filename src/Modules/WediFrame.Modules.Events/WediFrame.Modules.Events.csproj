@@ -8,5 +8,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
+    <!-- Events links each event to a package and derives its timeline from it,
+         via Billing's IPackageCatalog. One-way (Billing never references Events). -->
+    <ProjectReference Include="..\WediFrame.Modules.Billing\WediFrame.Modules.Billing.csproj" />
   </ItemGroup>
 </Project>

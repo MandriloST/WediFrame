@@ -45,6 +45,7 @@ async function copyText(text: string): Promise<boolean> {
 
 export default function EventDetailPage() {
   const t = useTranslations("eventDetail");
+  const tp = useTranslations("packages");
   const tStatus = useTranslations("dashboard.status");
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
@@ -120,6 +121,22 @@ export default function EventDetailPage() {
               <p className="mt-0.5 text-xs text-[#A8A29E]">
                 {t("uploadStart")}: {event.uploadStartDate}
               </p>
+              {event.packageName && (
+                <p className="mt-0.5 text-xs text-[#A8A29E]">
+                  {t("package")}:{" "}
+                  {event.packageSlug ? tp(`${event.packageSlug}.name`) : event.packageName}
+                </p>
+              )}
+              {event.uploadEndsAt && (
+                <p className="mt-0.5 text-xs text-[#A8A29E]">
+                  {t("uploadEnds")}: {event.uploadEndsAt}
+                </p>
+              )}
+              {event.expiresAt && (
+                <p className="mt-0.5 text-xs text-[#A8A29E]">
+                  {t("expires")}: {event.expiresAt}
+                </p>
+              )}
             </div>
             <StatusBadge label={tStatus(event.status)} status={event.status} />
           </div>

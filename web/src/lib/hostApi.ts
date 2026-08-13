@@ -38,6 +38,10 @@ export type HostEvent = {
   coverPhotoKey: string | null;
   coverPhotoUrl: string | null;
   createdAt: string;
+  packageSlug: string | null;
+  packageName: string | null;
+  uploadEndsAt: string | null; // "yyyy-MM-dd", set on activation
+  expiresAt: string | null; // "yyyy-MM-dd", set on activation
 };
 
 export class ApiError extends Error {
@@ -181,11 +185,12 @@ export async function listEvents(): Promise<HostEvent[]> {
 export async function createEvent(
   title: string,
   uploadStartDate: string,
+  packageSlug: string,
 ): Promise<HostEvent> {
   const res = await authFetch("/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, uploadStartDate, type: "wedding" }),
+    body: JSON.stringify({ title, uploadStartDate, type: "wedding", packageSlug }),
   });
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;

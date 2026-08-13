@@ -3,7 +3,7 @@ namespace WediFrame.Modules.Events.Contracts;
 // Error strings are machine-readable codes ("events.title_required", ...);
 // the frontend maps them to localized UI strings.
 
-public sealed record CreateEventRequest(string Title, DateOnly UploadStartDate, string? Type);
+public sealed record CreateEventRequest(string Title, DateOnly UploadStartDate, string? Type, string? PackageSlug);
 
 public sealed record EventResponse(
     Guid Id,
@@ -15,7 +15,11 @@ public sealed record EventResponse(
     string GuestUrl,
     string? CoverPhotoKey,
     string? CoverPhotoUrl,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? PackageSlug,
+    string? PackageName,
+    DateOnly? UploadEndsAt,
+    DateOnly? ExpiresAt);
 
 /// <summary>Host asks for a presigned PUT URL to upload the cover photo directly to R2.</summary>
 public sealed record CoverUploadRequest(string ContentType, long SizeBytes);
