@@ -129,3 +129,9 @@ Content-Type: application/json
 ### Očekivano: 5 paketa (free, essential, classic, premium, brzi-i-zestoki),
 ### poredani po sortOrder, s limitima u bytovima i cijenom u centima.
 GET {{baseUrl}}/packages
+
+### ─────────────────────────────────────────────────────────────────────────
+### M3 — Host stats (v26). Potrošnja vs limiti paketa (auth, vlasnik eventa).
+### Očekivano: photoCount/videoBytes/totalBytes + max* iz paketa + datumi.
+GET {{baseUrl}}/events/{{eventId}}/stats
+Authorization: Bearer {{token}}

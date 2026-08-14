@@ -371,3 +371,24 @@ export async function getExport(
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as ExportJob;
 }
+
+/** Confirmed usage vs package limits for an event (GET /events/{id}/stats). */
+export type EventStats = {
+  photoCount: number;
+  maxPhotoCount: number | null;
+  videoBytes: number;
+  maxVideoTotalBytes: number | null;
+  totalBytes: number;
+  maxTotalBytes: number | null;
+  packageSlug: string | null;
+  packageName: string | null;
+  uploadStartDate: string;
+  uploadEndsAt: string | null;
+  expiresAt: string | null;
+};
+
+export async function getEventStats(id: string): Promise<EventStats> {
+  const res = await authFetch(`/events/${id}/stats`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as EventStats;
+}

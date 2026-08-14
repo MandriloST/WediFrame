@@ -8,11 +8,13 @@ import { putToStorage } from "@/lib/guestApi";
 import {
   COVER_ALLOWED_TYPES,
   COVER_MAX_BYTES,
+  type EventStats,
   type HostEvent,
   activateEvent,
   closeUpload,
   confirmCover,
   getEvent,
+  getEventStats,
   getQrPng,
   isAuthed,
   reopenUpload,
@@ -149,6 +151,7 @@ export default function EventDetailPage() {
 
           {shareable && (
             <>
+              <StatsSection eventId={event.id} />
               <ShareSection event={event} qrUrl={qrUrl} />
               <UploadPeriodSection event={event} onUpdated={setEvent} />
             </>
@@ -156,6 +159,99 @@ export default function EventDetailPage() {
         </>
       )}
     </main>
+  );
+}
+
+const GB = 1024 ** 3;
+const MB = 1024 ** 2;
+
+function formatBytes(bytes: number): string {
+  if (bytes >= GB) return `${(bytes / GB).toFixed(bytes >= 10 * GB ? 0 : 1)} GB`;
+  if (bytes >= MB) return `${Math.round(bytes / MB)} MB`;
+  return `${Math.max(0, Math.round(bytes / 1024))} KB`;
+}
+
+function UsageBar({
+  label,
+  used,
+  max,
+  format,
+}: {
+  label: string;
+  used: number;
+  max: number | null;
+  format: (n: number) => string;
+}) {
+  const t = useTranslations("eventDetail");
+  const pct = max && max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
+  const over = max !== null && used > max;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between text-xs">
+        <span className="text-[#57534E]">{label}</span>
+        <span className="text-[#A8A29E]">
+          {max === null
+            ? t("usageNoLimit", { used: format(used) })
+            : `${format(used)} / ${format(max)}`}
+        </span>
+      </div>
+      {max !== null && (
+        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#EFE9E2]">
+          <div
+            className={`h-full rounded-full ${over ? "bg-[#B4432F]" : "bg-[#7C2D3E]"}`}
+            style={{ width: `${Math.max(2, pct)}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatsSection({ eventId }: { eventId: string }) {
+  const t = useTranslations("eventDetail");
+  const [stats, setStats] = useState<EventStats | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getEventStats(eventId)
+      .then((s) => alive && setStats(s))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [eventId]);
+
+  if (failed) return null;
+
+  return (
+    <section className="mt-5 rounded-2xl border border-[#E7E0D8] bg-white p-5">
+      <h2 className="text-sm font-medium text-[#44403C]">{t("usage")}</h2>
+      {stats === null ? (
+        <p className="mt-2 text-xs text-[#A8A29E]">{t("usageLoading")}</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          <UsageBar
+            label={t("usagePhotos")}
+            used={stats.photoCount}
+            max={stats.maxPhotoCount}
+            format={(n) => `${n}`}
+          />
+          <UsageBar
+            label={t("usageVideo")}
+            used={stats.videoBytes}
+            max={stats.maxVideoTotalBytes}
+            format={formatBytes}
+          />
+          <UsageBar
+            label={t("usageTotal")}
+            used={stats.totalBytes}
+            max={stats.maxTotalBytes}
+            format={formatBytes}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 

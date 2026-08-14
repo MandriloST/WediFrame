@@ -39,5 +39,6 @@ public sealed class MediaModule : IModule
         => endpoints
             .MapGuestMediaEndpoints()
             .MapHostMediaEndpoints()
+            .MapHostStatsEndpoints()
             .MapHostExportEndpoints();
 }
