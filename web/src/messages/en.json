@@ -2,6 +2,8 @@
   "common": {
     "appName": "WediFrame",
     "poweredBy": "Powered by EverFrame",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
     "loading": "Loading…"
   },
   "landing": {

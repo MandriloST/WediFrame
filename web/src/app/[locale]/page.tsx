@@ -48,7 +48,15 @@ export default async function LandingPage({
       </Link>
 
       <footer className="fixed inset-x-0 bottom-4 text-center text-xs text-neutral-400">
-        {tCommon("poweredBy")}
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/privacy" className="hover:text-neutral-600">
+            {tCommon("privacy")}
+          </Link>
+          <Link href="/terms" className="hover:text-neutral-600">
+            {tCommon("terms")}
+          </Link>
+        </div>
+        <div className="mt-1">{tCommon("poweredBy")}</div>
       </footer>
     </main>
   );

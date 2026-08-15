@@ -2,6 +2,8 @@
   "common": {
     "appName": "WediFrame",
     "poweredBy": "Powered by EverFrame",
+    "privacy": "Pravila privatnosti",
+    "terms": "Uvjeti korištenja",
     "loading": "Učitavanje…"
   },
   "landing": {
