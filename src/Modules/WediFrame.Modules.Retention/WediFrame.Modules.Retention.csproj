@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
+    <!-- Retention only schedules; the Event mutation + audit lives in the Events
+         module behind IEventRetention (Retention → Events, one-way, no cycle). -->
+    <ProjectReference Include="..\WediFrame.Modules.Events\WediFrame.Modules.Events.csproj" />
   </ItemGroup>
 </Project>
