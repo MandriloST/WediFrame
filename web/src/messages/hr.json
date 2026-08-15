@@ -199,7 +199,8 @@
     "companyAddress": "Adresa",
     "cannotCheckout": "Ovaj event se trenutno ne može platiti.",
     "checkoutSuccess": "Plaćanje uspješno — event je aktiviran!",
-    "checkoutCancel": "Plaćanje je otkazano. Možeš pokušati ponovno."
+    "checkoutCancel": "Plaćanje je otkazano. Možeš pokušati ponovno.",
+    "freeLimitReached": "Već imaš aktivan besplatni event. Za novi odaberi plaćeni paket ili pričekaj da prvi istekne."
   },
   "hostGallery": {
     "back": "Natrag",

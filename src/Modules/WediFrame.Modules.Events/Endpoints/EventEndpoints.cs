@@ -26,6 +26,11 @@ public static class EventEndpoints
     private static readonly TimeSpan UploadUrlExpiry = TimeSpan.FromMinutes(15);
     internal static readonly TimeSpan ViewUrlExpiry = TimeSpan.FromHours(1);
 
+    // Free-tier abuse guard: how many live (Active/UploadClosed) free events one
+    // user may have at once. Assumption (owner may revise) — kept as a constant
+    // for now; move to config if it needs changing without a redeploy.
+    private const int MaxActiveFreeEventsPerUser = 1;
+
     public static IEndpointRouteBuilder MapEventEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/events").RequireAuthorization();
@@ -345,6 +350,26 @@ public static class EventEndpoints
                 {
                     ["status"] = ["events.payment_required"],
                 });
+            }
+
+            // Abuse guard for the Free tier: a user may run at most
+            // MaxActiveFreeEventsPerUser live free events at once (Draft doesn't
+            // count — it consumes nothing). Paid events are never limited.
+            if (package is { IsFree: true })
+            {
+                var activeFree = await db.Set<Event>().CountAsync(
+                    e => e.OwnerUserId == userId
+                        && e.PackageId == package.Id
+                        && (e.Status == EventStatus.Active || e.Status == EventStatus.UploadClosed),
+                    ct);
+
+                if (activeFree >= MaxActiveFreeEventsPerUser)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["status"] = ["events.free_limit_reached"],
+                    });
+                }
             }
 
             entity.Status = EventStatus.Active;

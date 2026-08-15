@@ -386,8 +386,12 @@ function ActivateSection({
     setError(null);
     try {
       onUpdated(await activateEvent(event.id));
-    } catch {
-      setError(t("activateError"));
+    } catch (e) {
+      setError(
+        e instanceof ApiError && e.code === "events.free_limit_reached"
+          ? t("freeLimitReached")
+          : t("activateError"),
+      );
       setBusy(false);
     }
   };

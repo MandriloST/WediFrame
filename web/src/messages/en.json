@@ -199,7 +199,8 @@
     "companyAddress": "Address",
     "cannotCheckout": "This event can’t be checked out right now.",
     "checkoutSuccess": "Payment successful — your event is active!",
-    "checkoutCancel": "Payment was cancelled. You can try again."
+    "checkoutCancel": "Payment was cancelled. You can try again.",
+    "freeLimitReached": "You already have an active free event. Choose a paid package for a new one, or wait for the first to expire."
   },
   "hostGallery": {
     "back": "Back",
