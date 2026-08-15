@@ -190,7 +190,16 @@
     "closing": "Closing…",
     "reopenUpload": "Reopen uploads",
     "reopening": "Reopening…",
-    "uploadPeriodError": "That didn't work. Please try again."
+    "uploadPeriodError": "That didn't work. Please try again.",
+    "payAndActivate": "Pay {price} & activate",
+    "redirecting": "Opening payment…",
+    "needR1": "I need an R1 invoice",
+    "companyName": "Company name",
+    "companyOib": "OIB",
+    "companyAddress": "Address",
+    "cannotCheckout": "This event can’t be checked out right now.",
+    "checkoutSuccess": "Payment successful — your event is active!",
+    "checkoutCancel": "Payment was cancelled. You can try again."
   },
   "hostGallery": {
     "back": "Back",

@@ -392,3 +392,25 @@ export async function getEventStats(id: string): Promise<EventStats> {
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as EventStats;
 }
+
+/** R1 (company invoice) details for checkout. */
+export type CheckoutR1 = {
+  needsR1: boolean;
+  companyName: string | null;
+  companyOib: string | null;
+  companyAddress: string | null;
+};
+
+/** Start Stripe checkout for the event's paid package → returns the hosted payment URL. */
+export async function startCheckout(
+  id: string,
+  r1: CheckoutR1,
+): Promise<{ url: string }> {
+  const res = await authFetch(`/events/${id}/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(r1),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as { url: string };
+}

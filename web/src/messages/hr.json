@@ -190,7 +190,16 @@
     "closing": "Zatvaram…",
     "reopenUpload": "Ponovno otvori upload",
     "reopening": "Otvaram…",
-    "uploadPeriodError": "Radnja nije uspjela. Pokušaj ponovno."
+    "uploadPeriodError": "Radnja nije uspjela. Pokušaj ponovno.",
+    "payAndActivate": "Plati {price} i aktiviraj",
+    "redirecting": "Otvaram plaćanje…",
+    "needR1": "Trebam R1 račun",
+    "companyName": "Naziv firme",
+    "companyOib": "OIB",
+    "companyAddress": "Adresa",
+    "cannotCheckout": "Ovaj event se trenutno ne može platiti.",
+    "checkoutSuccess": "Plaćanje uspješno — event je aktiviran!",
+    "checkoutCancel": "Plaćanje je otkazano. Možeš pokušati ponovno."
   },
   "hostGallery": {
     "back": "Natrag",

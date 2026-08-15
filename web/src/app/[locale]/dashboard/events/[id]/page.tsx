@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { putToStorage } from "@/lib/guestApi";
+import { getPackages, putToStorage, type PublicPackage } from "@/lib/guestApi";
 import {
   COVER_ALLOWED_TYPES,
   COVER_MAX_BYTES,
+  ApiError,
+  type CheckoutR1,
   type EventStats,
   type HostEvent,
   activateEvent,
@@ -18,6 +20,7 @@ import {
   getQrPng,
   isAuthed,
   reopenUpload,
+  startCheckout,
   startCoverUpload,
 } from "@/lib/hostApi";
 
@@ -55,6 +58,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<HostEvent | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [checkoutReturn, setCheckoutReturn] = useState<"success" | "cancel" | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -72,6 +76,17 @@ export default function EventDetailPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [router, load]);
+
+  // Returned from Stripe (?checkout=success|cancel). On success re-load — the
+  // webhook has (very likely) already flipped the event to Active.
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("checkout");
+    if (v === "success" || v === "cancel") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCheckoutReturn(v);
+      if (v === "success") void load();
+    }
+  }, [load]);
 
   const shareable =
     event?.status === "Active" || event?.status === "UploadClosed";
@@ -115,6 +130,17 @@ export default function EventDetailPage() {
         <p className="mt-10 text-center text-sm text-[#A8A29E]">{t("loading")}</p>
       ) : (
         <>
+          {checkoutReturn && (
+            <div
+              className={`mt-4 rounded-xl px-4 py-3 text-sm ${
+                checkoutReturn === "success"
+                  ? "bg-[#EAF3EC] text-[#2F6B3A]"
+                  : "bg-[#FBF3F0] text-[#7C2D3E]"
+              }`}
+            >
+              {checkoutReturn === "success" ? t("checkoutSuccess") : t("checkoutCancel")}
+            </div>
+          )}
           <div className="mt-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="truncate text-xl font-semibold tracking-tight text-[#1C1917]">
@@ -319,33 +345,147 @@ function ActivateSection({
   onUpdated: (e: HostEvent) => void;
 }) {
   const t = useTranslations("eventDetail");
+  const locale = useLocale();
+  const [pkg, setPkg] = useState<PublicPackage | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const activate = async () => {
+  // R1 (company invoice) — only relevant for paid packages.
+  const [needsR1, setNeedsR1] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [companyOib, setCompanyOib] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    getPackages()
+      .then((list) => alive && setPkg(list.find((p) => p.slug === event.packageSlug) ?? null))
+      .catch(() => alive && setPkg(null));
+    return () => {
+      alive = false;
+    };
+  }, [event.packageSlug]);
+
+  const isPaid = !!pkg && pkg.priceCents > 0;
+  const money =
+    pkg && pkg.priceCents > 0
+      ? new Intl.NumberFormat(locale, { style: "currency", currency: pkg.currency }).format(
+          pkg.priceCents / 100,
+        )
+      : "";
+
+  const mapError = (e: unknown): string => {
+    if (e instanceof ApiError && e.code === "events.cannot_checkout") return t("cannotCheckout");
+    if (e instanceof ApiError && e.status === 401) return t("activateError");
+    return t("activateError");
+  };
+
+  const activateFree = async () => {
     if (busy) return;
     setBusy(true);
-    setError(false);
+    setError(null);
     try {
       onUpdated(await activateEvent(event.id));
     } catch {
-      setError(true);
+      setError(t("activateError"));
       setBusy(false);
     }
   };
 
+  const pay = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r1: CheckoutR1 = {
+        needsR1,
+        companyName: needsR1 ? companyName.trim() || null : null,
+        companyOib: needsR1 ? companyOib.trim() || null : null,
+        companyAddress: needsR1 ? companyAddress.trim() || null : null,
+      };
+      const { url } = await startCheckout(event.id, r1);
+      window.location.href = url; // hand off to Stripe's hosted checkout
+    } catch (e) {
+      setError(mapError(e));
+      setBusy(false);
+    }
+  };
+
+  // Still resolving which package this event uses.
+  if (pkg === undefined) {
+    return (
+      <section className="mt-5 rounded-2xl border border-[#E7E0D8] bg-white p-5">
+        <p className="text-sm text-[#A8A29E]">{t("draftHint")}</p>
+      </section>
+    );
+  }
+
+  const inputClass =
+    "mt-1 w-full rounded-lg border border-[#E7E0D8] bg-[#FFFDF9] px-3 py-2.5 text-sm text-[#1C1917] outline-none focus:border-[#7C2D3E]";
+
   return (
     <section className="mt-5 rounded-2xl border border-[#E7E0D8] bg-white p-5">
       <p className="text-sm text-[#57534E]">{t("draftHint")}</p>
-      <button
-        type="button"
-        onClick={activate}
-        disabled={busy}
-        className="mt-3 w-full rounded-xl bg-[#7C2D3E] px-4 py-3 font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
-      >
-        {busy ? t("activating") : t("activate")}
-      </button>
-      {error && <p className="mt-2 text-sm text-[#B4432F]">{t("activateError")}</p>}
+
+      {isPaid ? (
+        <>
+          <label className="mt-3 flex items-center gap-2 text-sm text-[#44403C]">
+            <input
+              type="checkbox"
+              checked={needsR1}
+              onChange={(e) => setNeedsR1(e.target.checked)}
+              className="h-4 w-4 accent-[#7C2D3E]"
+            />
+            {t("needR1")}
+          </label>
+
+          {needsR1 && (
+            <div className="mt-3 space-y-2">
+              <input
+                type="text"
+                value={companyName}
+                placeholder={t("companyName")}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="text"
+                value={companyOib}
+                placeholder={t("companyOib")}
+                onChange={(e) => setCompanyOib(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="text"
+                value={companyAddress}
+                placeholder={t("companyAddress")}
+                onChange={(e) => setCompanyAddress(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={pay}
+            disabled={busy}
+            className="mt-3 w-full rounded-xl bg-[#7C2D3E] px-4 py-3 font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
+          >
+            {busy ? t("redirecting") : t("payAndActivate", { price: money })}
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={activateFree}
+          disabled={busy}
+          className="mt-3 w-full rounded-xl bg-[#7C2D3E] px-4 py-3 font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
+        >
+          {busy ? t("activating") : t("activate")}
+        </button>
+      )}
+
+      {error && <p className="mt-2 text-sm text-[#B4432F]">{error}</p>}
     </section>
   );
 }
