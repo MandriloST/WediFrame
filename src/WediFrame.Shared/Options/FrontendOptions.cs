@@ -16,6 +16,12 @@ public sealed class FrontendOptions
     public string GuestBaseUrl { get; set; } = "";
 
     /// <summary>
+    /// Base URL of the app (host dashboard), used to build Stripe success/cancel
+    /// return URLs. Dev: "http://localhost:3000" · Prod: "https://wediframe.hr".
+    /// </summary>
+    public string AppBaseUrl { get; set; } = "";
+
+    /// <summary>
     /// Origins allowed to call the API from a browser (CORS).
     /// Dev: ["http://localhost:3000"] · Prod: ["https://wediframe.hr"].
     /// </summary>

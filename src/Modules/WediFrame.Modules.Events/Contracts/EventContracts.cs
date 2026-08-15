@@ -49,3 +49,16 @@ public sealed record GuestEventInfoResponse(
     string? CoverPhotoUrl,
     bool UploadOpen,
     string UploadState);
+
+/// <summary>
+/// Start a paid checkout for the event's (already chosen) package. R1 fields are
+/// filled only when the host ticks "Trebam R1" in checkout.
+/// </summary>
+public sealed record CheckoutRequest(
+    bool NeedsR1,
+    string? CompanyName,
+    string? CompanyOib,
+    string? CompanyAddress);
+
+/// <summary>Checkout response: the hosted payment URL to redirect the host to.</summary>
+public sealed record CheckoutResponse(string Url);

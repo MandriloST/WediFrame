@@ -34,5 +34,5 @@ public sealed class EventsModule : IModule
     }
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
-        => endpoints.MapEventEndpoints().MapGuestEndpoints();
+        => endpoints.MapEventEndpoints().MapGuestEndpoints().MapCheckoutEndpoints();
 }

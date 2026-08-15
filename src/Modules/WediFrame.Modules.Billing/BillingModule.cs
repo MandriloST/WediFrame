@@ -48,6 +48,12 @@ public sealed class BillingModule : IModule
             services.AddScoped<IFiscalizationService, ManualFiscalizationService>();
         }
 
+        // Payment gateway (Stripe) + checkout orchestration. Stripe is behind
+        // IPaymentGateway so it's swappable too.
+        services.AddOptions<StripeOptions>().Bind(configuration.GetSection(StripeOptions.SectionName));
+        services.AddScoped<IPaymentGateway, StripePaymentGateway>();
+        services.AddScoped<ICheckoutService, CheckoutService>();
+
         return services;
     }
 

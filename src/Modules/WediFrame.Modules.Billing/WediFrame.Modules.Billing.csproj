@@ -4,6 +4,8 @@
          (ToTable, HasData and other relational extensions) — convention for every
          module that owns entities. -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Stripe Checkout + webhook (payment gateway adapter). -->
+    <PackageReference Include="Stripe.net" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
