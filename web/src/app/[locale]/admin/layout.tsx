@@ -29,7 +29,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
 
-  const nav = [{ href: "/admin", label: t("nav.overview"), exact: true }, { href: "/admin/audit", label: t("nav.audit") }];
+  const nav = [
+    { href: "/admin", label: t("nav.overview"), exact: true },
+    { href: "/admin/users", label: t("nav.users") },
+    { href: "/admin/audit", label: t("nav.audit") },
+  ];
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">

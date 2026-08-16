@@ -158,7 +158,11 @@ async function tryRefresh(): Promise<boolean> {
   }
 }
 
-async function authFetch(
+/**
+ * Authenticated fetch with one silent refresh on 401. Exported so the admin
+ * client (adminApi.ts) reuses the same session + refresh logic.
+ */
+export async function authFetch(
   path: string,
   init: RequestInit = {},
   allowRefresh = true,

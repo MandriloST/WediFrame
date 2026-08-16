@@ -52,3 +52,35 @@ export async function getAuditLog(
   if (!res.ok) throw new ApiError(res.status, null);
   return (await res.json()) as Paged<AuditLogItem>;
 }
+
+// --- users (A2) --------------------------------------------------------------
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  role: string; // "Host" | "Admin"
+  preferredLanguage: string;
+  createdAt: string; // ISO
+};
+
+export type UserFilters = {
+  page?: number;
+  pageSize?: number;
+  q?: string; // email substring
+  role?: string; // "Host" | "Admin"
+};
+
+export async function getUsers(
+  filters: UserFilters,
+): Promise<Paged<AdminUser>> {
+  const qs = new URLSearchParams();
+  if (filters.page) qs.set("page", String(filters.page));
+  if (filters.pageSize) qs.set("pageSize", String(filters.pageSize));
+  if (filters.q) qs.set("q", filters.q);
+  if (filters.role) qs.set("role", filters.role);
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await authFetch(`/admin/users${suffix}`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as Paged<AdminUser>;
+}

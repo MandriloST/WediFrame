@@ -9,7 +9,7 @@ using WediFrame.Shared.Modules;
 namespace WediFrame.Modules.Admin;
 
 /// <summary>
-/// Internal admin: audit trail (M5 step A1), later events/users/storage report and
+/// Internal admin: audit trail (A1) + user list (A2), later events/storage report and
 /// moderation. Admin is a pure leaf module — it reads the shared audit log directly
 /// and reaches other modules only through Shared contracts (e.g. IAdminIdentity),
 /// so it references no other module and introduces no cycles.
@@ -43,6 +43,7 @@ public sealed class AdminModule : IModule
     {
         var group = endpoints.MapGroup("/admin").RequireAuthorization(AdminPolicy.Name);
         group.MapAdminAuditEndpoints();
+        group.MapAdminUserEndpoints();
         return endpoints;
     }
 }

@@ -21,11 +21,21 @@
     "description": "A private gallery for your wedding. Guests share photos and videos with no app and no sign-up — they just scan a QR code."
   },
   "packages": {
-    "free": { "name": "Free" },
-    "essential": { "name": "Essential" },
-    "classic": { "name": "Classic" },
-    "premium": { "name": "Premium" },
-    "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+    "free": {
+      "name": "Free"
+    },
+    "essential": {
+      "name": "Essential"
+    },
+    "classic": {
+      "name": "Classic"
+    },
+    "premium": {
+      "name": "Premium"
+    },
+    "brzi-i-zestoki": {
+      "name": "Brzi i žestoki"
+    }
   },
   "pricing": {
     "back": "Back to home",
@@ -246,5 +256,81 @@
     "exportReady": "ZIP ready",
     "exportHint": "This can take a few minutes for larger galleries.",
     "exportError": "Couldn't prepare the ZIP. Please try again."
+  },
+  "admin": {
+    "brand": "WediFrame Admin",
+    "backToApp": "Back to app",
+    "logout": "Log out",
+    "nav": {
+      "overview": "Overview",
+      "audit": "Audit log",
+      "users": "Users",
+      "events": "Events"
+    },
+    "home": {
+      "title": "Administration",
+      "subtitle": "Internal overview and moderation.",
+      "auditDesc": "All recorded actions in the system, with filters.",
+      "usersDesc": "Browse users and roles.",
+      "eventsDesc": "View and moderate events.",
+      "soon": "Soon"
+    },
+    "audit": {
+      "title": "Audit log",
+      "subtitle": "All recorded actions, newest first.",
+      "filters": {
+        "entityType": "Entity type",
+        "entityTypeAny": "All types",
+        "action": "Action",
+        "actionPlaceholder": "e.g. event.deleted",
+        "entityId": "Entity ID",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "col": {
+        "time": "Time",
+        "action": "Action",
+        "entity": "Entity",
+        "actor": "Actor",
+        "details": "Details"
+      },
+      "system": "System",
+      "empty": "No entries for the selected filters.",
+      "error": "Could not load the audit log.",
+      "loading": "Loading…",
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "totalCount": "{total} entries"
+    },
+    "users": {
+      "title": "Users",
+      "subtitle": "All registered users, newest first.",
+      "filters": {
+        "search": "Search by email",
+        "searchPlaceholder": "e.g. ivan@",
+        "role": "Role",
+        "roleAny": "All roles",
+        "roleHost": "Host",
+        "roleAdmin": "Admin",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "col": {
+        "email": "Email",
+        "role": "Role",
+        "language": "Language",
+        "created": "Registered"
+      },
+      "empty": "No users for the selected filters.",
+      "error": "Could not load users.",
+      "loading": "Loading…",
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "totalCount": "{total} users"
+    }
   }
 }

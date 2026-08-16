@@ -39,6 +39,9 @@ public sealed class IdentityModule : IModule
         // user management). Implemented here, consumed via the Shared contract.
         services.AddScoped<IAdminIdentity, AdminIdentity>();
 
+        // Read-only admin user listing (Admin module), same Shared-contract pattern.
+        services.AddScoped<IAdminUserDirectory, AdminUserDirectory>();
+
         return services;
     }
 

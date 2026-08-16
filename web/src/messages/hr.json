@@ -21,11 +21,21 @@
     "description": "Privatna galerija za vaše vjenčanje. Gosti dijele fotografije i video bez aplikacije i registracije — samo skeniraju QR kod."
   },
   "packages": {
-    "free": { "name": "Probni" },
-    "essential": { "name": "Osnovni" },
-    "classic": { "name": "Klasični" },
-    "premium": { "name": "Premium" },
-    "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+    "free": {
+      "name": "Probni"
+    },
+    "essential": {
+      "name": "Osnovni"
+    },
+    "classic": {
+      "name": "Klasični"
+    },
+    "premium": {
+      "name": "Premium"
+    },
+    "brzi-i-zestoki": {
+      "name": "Brzi i žestoki"
+    }
   },
   "pricing": {
     "back": "Natrag na početnu",
@@ -248,35 +258,79 @@
     "exportError": "Priprema ZIP-a nije uspjela. Pokušaj ponovno."
   },
   "admin": {
-  "brand": "WediFrame Admin",
-  "backToApp": "Natrag na aplikaciju",
-  "logout": "Odjava",
-  "nav": { "overview": "Pregled", "audit": "Zapisnik (audit)", "users": "Korisnici", "events": "Eventi" },
-  "home": {
-    "title": "Administracija",
-    "subtitle": "Interni pregled i moderacija.",
-    "auditDesc": "Sve zabilježene radnje u sustavu, s filterima.",
-    "usersDesc": "Pregled i upravljanje korisnicima.",
-    "eventsDesc": "Pregled i moderacija evenata.",
-    "soon": "Uskoro"
+    "brand": "WediFrame Admin",
+    "backToApp": "Natrag na aplikaciju",
+    "logout": "Odjava",
+    "nav": {
+      "overview": "Pregled",
+      "audit": "Zapisnik (audit)",
+      "users": "Korisnici",
+      "events": "Eventi"
+    },
+    "home": {
+      "title": "Administracija",
+      "subtitle": "Interni pregled i moderacija.",
+      "auditDesc": "Sve zabilježene radnje u sustavu, s filterima.",
+      "usersDesc": "Pregled korisnika i uloga.",
+      "eventsDesc": "Pregled i moderacija evenata.",
+      "soon": "Uskoro"
     },
     "audit": {
       "title": "Zapisnik radnji",
       "subtitle": "Sve zabilježene radnje, najnovije prvo.",
       "filters": {
-        "entityType": "Tip entiteta", "entityTypeAny": "Svi tipovi",
-        "action": "Radnja", "actionPlaceholder": "npr. event.deleted",
-        "entityId": "ID entiteta", "from": "Od", "to": "Do",
-        "apply": "Primijeni", "reset": "Poništi"
+        "entityType": "Tip entiteta",
+        "entityTypeAny": "Svi tipovi",
+        "action": "Radnja",
+        "actionPlaceholder": "npr. event.deleted",
+        "entityId": "ID entiteta",
+        "from": "Od",
+        "to": "Do",
+        "apply": "Primijeni",
+        "reset": "Poništi"
       },
-      "col": { "time": "Vrijeme", "action": "Radnja", "entity": "Entitet", "actor": "Akter", "details": "Detalji" },
+      "col": {
+        "time": "Vrijeme",
+        "action": "Radnja",
+        "entity": "Entitet",
+        "actor": "Akter",
+        "details": "Detalji"
+      },
       "system": "Sustav",
       "empty": "Nema zapisa za odabrane filtere.",
       "error": "Zapisnik nije moguće dohvatiti.",
       "loading": "Učitavanje…",
-      "prev": "Prethodna", "next": "Sljedeća",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
       "pageOf": "Stranica {page} od {pages}",
       "totalCount": "{total} zapisa"
+    },
+    "users": {
+      "title": "Korisnici",
+      "subtitle": "Svi registrirani korisnici, najnoviji prvo.",
+      "filters": {
+        "search": "Pretraga e-poštom",
+        "searchPlaceholder": "npr. ivan@",
+        "role": "Uloga",
+        "roleAny": "Sve uloge",
+        "roleHost": "Host",
+        "roleAdmin": "Admin",
+        "apply": "Primijeni",
+        "reset": "Poništi"
+      },
+      "col": {
+        "email": "E-pošta",
+        "role": "Uloga",
+        "language": "Jezik",
+        "created": "Registriran"
+      },
+      "empty": "Nema korisnika za odabrane filtere.",
+      "error": "Korisnike nije moguće dohvatiti.",
+      "loading": "Učitavanje…",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
+      "pageOf": "Stranica {page} od {pages}",
+      "totalCount": "{total} korisnika"
     }
   }
 }
