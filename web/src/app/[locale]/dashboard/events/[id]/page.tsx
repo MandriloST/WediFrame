@@ -17,6 +17,7 @@ import {
   confirmCover,
   deleteEvent,
   getEvent,
+  rotateGuestToken,
   getEventStats,
   getQrPng,
   isAuthed,
@@ -59,6 +60,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<HostEvent | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrNonce, setQrNonce] = useState(0);
   const [checkoutReturn, setCheckoutReturn] = useState<"success" | "cancel" | null>(null);
 
   const load = useCallback(async () => {
@@ -106,7 +108,7 @@ export default function EventDetailPage() {
     return () => {
       if (revoke) URL.revokeObjectURL(revoke);
     };
-  }, [id, shareable]);
+  }, [id, shareable, qrNonce]);
 
   if (notFound) {
     return (
@@ -179,7 +181,14 @@ export default function EventDetailPage() {
           {shareable && (
             <>
               <StatsSection eventId={event.id} />
-              <ShareSection event={event} qrUrl={qrUrl} />
+              <ShareSection
+                event={event}
+                qrUrl={qrUrl}
+                onRotated={(e) => {
+                  setEvent(e);
+                  setQrNonce((n) => n + 1);
+                }}
+              />
               <UploadPeriodSection event={event} onUpdated={setEvent} />
             </>
           )}
@@ -561,17 +570,37 @@ function ActivateSection({
 function ShareSection({
   event,
   qrUrl,
+  onRotated,
 }: {
   event: HostEvent;
   qrUrl: string | null;
+  onRotated: (e: HostEvent) => void;
 }) {
   const t = useTranslations("eventDetail");
   const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
 
   const copy = async () => {
     if (await copyText(event.guestUrl)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    }
+  };
+
+  const rotate = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(false);
+    try {
+      const updated = await rotateGuestToken(event.id);
+      onRotated(updated);
+      setConfirming(false);
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -623,6 +652,41 @@ function ShareSection({
           </>
         ) : (
           <p className="py-8 text-xs text-[#A8A29E]">{t("qrLoading")}</p>
+        )}
+      </div>
+
+      <div className="mt-6 border-t border-[#F0EAE2] pt-4">
+        {!confirming ? (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="text-xs font-medium text-[#A8776E] underline underline-offset-2"
+          >
+            {t("rotateLink")}
+          </button>
+        ) : (
+          <div className="rounded-xl border border-[#EAD7D2] bg-[#FCF6F4] p-3">
+            <p className="text-xs text-[#57534E]">{t("rotateWarn")}</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={busy}
+                className="flex-1 rounded-lg border border-[#E7E0D8] px-3 py-2 text-xs font-medium text-[#57534E] disabled:opacity-60"
+              >
+                {t("rotateCancel")}
+              </button>
+              <button
+                type="button"
+                onClick={rotate}
+                disabled={busy}
+                className="flex-1 rounded-lg bg-[#B4432F] px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
+              >
+                {busy ? t("rotating") : t("rotateConfirm")}
+              </button>
+            </div>
+            {error && <p className="mt-2 text-xs text-[#B4432F]">{t("rotateError")}</p>}
+          </div>
         )}
       </div>
 
