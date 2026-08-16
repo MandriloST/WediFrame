@@ -2,6 +2,8 @@
   "common": {
     "appName": "WediFrame",
     "poweredBy": "Powered by EverFrame",
+    "privacy": "Pravila privatnosti",
+    "terms": "Uvjeti korištenja",
     "loading": "Učitavanje…"
   },
   "landing": {
@@ -12,17 +14,41 @@
       "two": "Gosti skeniraju i uploadaju slike i video",
       "three": "Sve uspomene u privatnoj galeriji"
     },
-    "cta": "Uskoro"
+    "cta": "Pogledajte pakete"
   },
   "meta": {
     "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",
     "description": "Privatna galerija za vaše vjenčanje. Gosti dijele fotografije i video bez aplikacije i registracije — samo skeniraju QR kod."
+  },
+  "packages": {
+    "free": { "name": "Probni" },
+    "essential": { "name": "Osnovni" },
+    "classic": { "name": "Klasični" },
+    "premium": { "name": "Premium" },
+    "brzi-i-zestoki": { "name": "Brzi i žestoki" }
+  },
+  "pricing": {
+    "back": "Natrag na početnu",
+    "title": "Odaberite paket",
+    "subtitle": "Plaćate jednom, po eventu. Bez pretplate.",
+    "perEvent": "po eventu",
+    "free": "Besplatno",
+    "photos": "{count} fotografija",
+    "video": "{size} videa",
+    "total": "{size} ukupno",
+    "uploadFor": "Upload: {duration}",
+    "galleryFor": "Galerija: {duration}",
+    "months": "{n} mj.",
+    "days": "{n} dana",
+    "cta": "Kreiraj event",
+    "unavailable": "Paketi trenutno nisu dostupni. Pokušajte kasnije."
   },
   "guest": {
     "eyebrow": "Podijelite uspomene",
     "addPhotos": "Dodaj fotografije",
     "mediaHint": "Fotografije i video",
     "uploadClosed": "Upload je završen — hvala svima koji su podijelili uspomene! Galerija ostaje dostupna.",
+    "uploadNotStarted": "Upload još nije počeo. Slanje fotografija i videa kreće {date}.",
     "privacyNotice": "Fotografije koje pošaljete bit će vidljive svim gostima s linkom na ovaj event i pohranjene do isteka trajanja galerije. Ne koristimo ih ni za što drugo.",
     "privacyLink": "Pravila privatnosti",
     "namePlaceholder": "Vaše ime (nije obavezno)",
@@ -34,6 +60,10 @@
     "retry": "Pokušaj ponovno",
     "errors": {
       "uploadFailed": "Slanje nije uspjelo — provjerite vezu i pokušajte ponovno.",
+      "quotaPhotoCount": "Dosegnut je limit broja fotografija za ovaj event.",
+      "quotaVideoBytes": "Dosegnut je limit za video na ovom eventu.",
+      "quotaTotalBytes": "Dosegnut je ukupni limit prostora za ovaj event.",
+      "uploadClosedError": "Upload je u međuvremenu zatvoren.",
       "typeUnsupported": "Ovaj tip datoteke nije podržan.",
       "fileTooLarge": "Fotografija je veća od 50 MB.",
       "prepareFailed": "Pretvorba HEIC-a nije uspjela — pokušajte ponovno."
@@ -105,8 +135,17 @@
     "dateHint": "Od tog datuma gosti mogu slati fotke i video.",
     "createButton": "Kreiraj event",
     "creating": "Kreiram…",
+    "packageLabel": "Paket",
+    "packagesLoading": "Učitavam pakete…",
+    "free": "Besplatno",
+    "specPhotos": "{count} fotki",
+    "specVideo": "{size} videa",
+    "specUpload": "{days} dana za upload",
+    "specStorage": "{days} dana pohrane",
+    "paidNote": "Plaćanje stiže uskoro — za sada aktiviraj Besplatni paket.",
     "errors": {
       "titleRequired": "Upiši naziv eventa.",
+      "packageInvalid": "Odabrani paket nije dostupan.",
       "session": "Sesija je istekla — prijavi se ponovno.",
       "generic": "Kreiranje nije uspjelo. Pokušaj ponovno."
     }
@@ -136,7 +175,34 @@
     "coverTypeError": "Podržani su JPEG, PNG i WebP.",
     "coverSizeError": "Slika je veća od 20 MB.",
     "coverError": "Upload naslovne nije uspio.",
-    "manageGallery": "Upravljaj galerijom"
+    "manageGallery": "Upravljaj galerijom",
+    "package": "Paket",
+    "usage": "Potrošnja",
+    "usageLoading": "Učitavam…",
+    "usagePhotos": "Fotografije",
+    "usageVideo": "Video",
+    "usageTotal": "Ukupno",
+    "usageNoLimit": "{used} (bez limita)",
+    "uploadEnds": "Upload do",
+    "expires": "Galerija do",
+    "uploadPeriod": "Upload period",
+    "uploadOpenHint": "Upload je otvoren — gosti mogu slati fotke i video. Možeš ga zatvoriti ranije.",
+    "uploadClosedHint": "Upload je zatvoren — gosti vide galeriju, ali više ne mogu slati.",
+    "closeUpload": "Zatvori upload",
+    "closing": "Zatvaram…",
+    "reopenUpload": "Ponovno otvori upload",
+    "reopening": "Otvaram…",
+    "uploadPeriodError": "Radnja nije uspjela. Pokušaj ponovno.",
+    "payAndActivate": "Plati {price} i aktiviraj",
+    "redirecting": "Otvaram plaćanje…",
+    "needR1": "Trebam R1 račun",
+    "companyName": "Naziv firme",
+    "companyOib": "OIB",
+    "companyAddress": "Adresa",
+    "cannotCheckout": "Ovaj event se trenutno ne može platiti.",
+    "checkoutSuccess": "Plaćanje uspješno — event je aktiviran!",
+    "checkoutCancel": "Plaćanje je otkazano. Možeš pokušati ponovno.",
+    "freeLimitReached": "Već imaš aktivan besplatni event. Za novi odaberi plaćeni paket ili pričekaj da prvi istekne."
   },
   "hostGallery": {
     "back": "Natrag",
@@ -160,6 +226,11 @@
     "deleting": "Brišem…",
     "cancel": "Odustani",
     "actionError": "Radnja nije uspjela. Pokušaj ponovno.",
-    "download": "Preuzmi"
+    "download": "Preuzmi",
+    "exportAll": "Preuzmi sve (ZIP)",
+    "exportPreparing": "Pripremam ZIP…",
+    "exportReady": "ZIP spreman",
+    "exportHint": "Ovo može potrajati par minuta za veće galerije.",
+    "exportError": "Priprema ZIP-a nije uspjela. Pokušaj ponovno."
   }
 }

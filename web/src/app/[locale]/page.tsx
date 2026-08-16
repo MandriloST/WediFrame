@@ -1,4 +1,5 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 
 export default async function LandingPage({
   params,
@@ -39,12 +40,23 @@ export default async function LandingPage({
         ))}
       </ol>
 
-      <span className="rounded-full border border-neutral-300 px-4 py-1.5 text-sm text-neutral-500">
+      <Link
+        href="/pricing"
+        className="rounded-full border border-[#7C2D3E] px-5 py-2 text-sm font-medium text-[#7C2D3E] transition hover:bg-[#7C2D3E] hover:text-white"
+      >
         {t("cta")}
-      </span>
+      </Link>
 
       <footer className="fixed inset-x-0 bottom-4 text-center text-xs text-neutral-400">
-        {tCommon("poweredBy")}
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/privacy" className="hover:text-neutral-600">
+            {tCommon("privacy")}
+          </Link>
+          <Link href="/terms" className="hover:text-neutral-600">
+            {tCommon("terms")}
+          </Link>
+        </div>
+        <div className="mt-1">{tCommon("poweredBy")}</div>
       </footer>
     </main>
   );

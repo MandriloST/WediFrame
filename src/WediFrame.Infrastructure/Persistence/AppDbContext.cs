@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WediFrame.Modules.Billing;
 using WediFrame.Modules.Events;
 using WediFrame.Modules.Identity;
 using WediFrame.Modules.Media;
@@ -26,5 +27,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityModule).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsModule).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MediaModule).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(BillingModule).Assembly);
     }
 }

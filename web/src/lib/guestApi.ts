@@ -8,6 +8,9 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080/api/v1";
 
+/** Drives the guest upload button. Gallery shows in every state. */
+export type UploadState = "NotStarted" | "Open" | "Closed";
+
 export type GuestEventInfo = {
   title: string;
   type: string;
@@ -15,6 +18,7 @@ export type GuestEventInfo = {
   status: string;
   coverPhotoUrl: string | null;
   uploadOpen: boolean;
+  uploadState: UploadState;
 };
 
 export type UploadItemRequest = {
@@ -94,6 +98,49 @@ export const BROWSER_DISPLAYABLE_TYPES = new Set([
   "image/gif",
 ]);
 
+/** Public package for the pricing page / event wizard (GET /packages). */
+export type PublicPackage = {
+  slug: string;
+  name: string;
+  priceCents: number;
+  currency: string;
+  maxPhotoCount: number;
+  maxVideoTotalBytes: number;
+  maxTotalBytes: number;
+  maxFileBytes: number;
+  uploadPeriodDays: number;
+  retentionDays: number;
+  sortOrder: number;
+};
+
+/** Thrown by guest upload calls; `code` is the backend error code (e.g. "media.quota_photo_count"). */
+export class GuestUploadError extends Error {
+  code: string;
+  constructor(code: string) {
+    super(code);
+    this.name = "GuestUploadError";
+    this.code = code;
+  }
+}
+
+/** Read the first machine error code from a ValidationProblem body, or null. */
+async function problemCode(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { errors?: Record<string, string[]> };
+    const first = body.errors && Object.values(body.errors)[0]?.[0];
+    return first ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Public catalogue of active packages (no auth). */
+export async function getPackages(): Promise<PublicPackage[]> {
+  const res = await fetch(`${API_BASE}/packages`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`packages failed: ${res.status}`);
+  return (await res.json()) as PublicPackage[];
+}
+
 export async function getGuestEvent(
   token: string,
 ): Promise<GuestEventInfo | null> {
@@ -131,7 +178,7 @@ export async function startUploads(
       body: JSON.stringify({ items, guestName }),
     },
   );
-  if (!res.ok) throw new Error(`presign failed: ${res.status}`);
+  if (!res.ok) throw new GuestUploadError((await problemCode(res)) ?? "media.unknown");
   const data = (await res.json()) as { items: UploadItemResponse[] };
   return data.items;
 }
@@ -144,7 +191,7 @@ export async function confirmUpload(
     `${API_BASE}/guest/${encodeURIComponent(token)}/uploads/${mediaId}/confirm`,
     { method: "POST" },
   );
-  if (!res.ok) throw new Error(`confirm failed: ${res.status}`);
+  if (!res.ok) throw new GuestUploadError((await problemCode(res)) ?? "media.unknown");
   return (await res.json()) as ConfirmResponse;
 }
 
@@ -195,7 +242,7 @@ export async function initVideoUpload(
       body: JSON.stringify(req),
     },
   );
-  if (!res.ok) throw new Error(`video init failed: ${res.status}`);
+  if (!res.ok) throw new GuestUploadError((await problemCode(res)) ?? "media.unknown");
   return (await res.json()) as VideoInitResponse;
 }
 
@@ -247,7 +294,7 @@ export async function completeVideoUpload(
       }),
     },
   );
-  if (!res.ok) throw new Error(`video complete failed: ${res.status}`);
+  if (!res.ok) throw new GuestUploadError((await problemCode(res)) ?? "media.unknown");
   return (await res.json()) as ConfirmResponse;
 }
 

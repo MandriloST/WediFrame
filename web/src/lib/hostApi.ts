@@ -38,6 +38,10 @@ export type HostEvent = {
   coverPhotoKey: string | null;
   coverPhotoUrl: string | null;
   createdAt: string;
+  packageSlug: string | null;
+  packageName: string | null;
+  uploadEndsAt: string | null; // "yyyy-MM-dd", set on activation
+  expiresAt: string | null; // "yyyy-MM-dd", set on activation
 };
 
 export class ApiError extends Error {
@@ -181,11 +185,12 @@ export async function listEvents(): Promise<HostEvent[]> {
 export async function createEvent(
   title: string,
   uploadStartDate: string,
+  packageSlug: string,
 ): Promise<HostEvent> {
   const res = await authFetch("/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, uploadStartDate, type: "wedding" }),
+    body: JSON.stringify({ title, uploadStartDate, type: "wedding", packageSlug }),
   });
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;
@@ -194,6 +199,20 @@ export async function createEvent(
 /** Free activation (Draft → Active) so the guest link starts working. */
 export async function activateEvent(id: string): Promise<HostEvent> {
   const res = await authFetch(`/events/${id}/activate`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
+/** Close the upload period early (Active → UploadClosed): gallery stays, uploads stop. */
+export async function closeUpload(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/close-upload`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
+/** Reopen a closed upload period (UploadClosed → Active). */
+export async function reopenUpload(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/reopen-upload`, { method: "POST" });
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as HostEvent;
 }
@@ -322,4 +341,76 @@ export async function getMediaDownloadUrl(
   const res = await authFetch(`/events/${eventId}/media/${mediaId}/download`);
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as { url: string; fileName: string };
+}
+
+// --- gallery ZIP export (host, M2) -------------------------------------------
+
+export type ExportJob = {
+  jobId: string;
+  status: "Pending" | "Running" | "Ready" | "Failed" | string;
+  itemCount: number | null;
+  sizeBytes: number | null;
+  downloadUrl: string | null;
+  fileName: string | null;
+  error: string | null;
+};
+
+/** Start (or reuse) a whole-gallery ZIP export. Poll getExport until Ready/Failed. */
+export async function startExport(eventId: string): Promise<ExportJob> {
+  const res = await authFetch(`/events/${eventId}/export`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as ExportJob;
+}
+
+/** Poll an export job. When status is "Ready", downloadUrl is a presigned ZIP link. */
+export async function getExport(
+  eventId: string,
+  jobId: string,
+): Promise<ExportJob> {
+  const res = await authFetch(`/events/${eventId}/export/${jobId}`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as ExportJob;
+}
+
+/** Confirmed usage vs package limits for an event (GET /events/{id}/stats). */
+export type EventStats = {
+  photoCount: number;
+  maxPhotoCount: number | null;
+  videoBytes: number;
+  maxVideoTotalBytes: number | null;
+  totalBytes: number;
+  maxTotalBytes: number | null;
+  packageSlug: string | null;
+  packageName: string | null;
+  uploadStartDate: string;
+  uploadEndsAt: string | null;
+  expiresAt: string | null;
+};
+
+export async function getEventStats(id: string): Promise<EventStats> {
+  const res = await authFetch(`/events/${id}/stats`);
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as EventStats;
+}
+
+/** R1 (company invoice) details for checkout. */
+export type CheckoutR1 = {
+  needsR1: boolean;
+  companyName: string | null;
+  companyOib: string | null;
+  companyAddress: string | null;
+};
+
+/** Start Stripe checkout for the event's paid package → returns the hosted payment URL. */
+export async function startCheckout(
+  id: string,
+  r1: CheckoutR1,
+): Promise<{ url: string }> {
+  const res = await authFetch(`/events/${id}/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(r1),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as { url: string };
 }

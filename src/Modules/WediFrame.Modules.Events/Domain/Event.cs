@@ -3,7 +3,8 @@ namespace WediFrame.Modules.Events.Domain;
 /// <summary>
 /// A single event (wedding for now — event-type agnostic by design).
 /// Guest access is granted solely by <see cref="GuestToken"/>; guests have no accounts.
-/// Package linkage and derived dates (uploadEndsAt, expiresAt) arrive with Billing (M3).
+/// The chosen package (M3) defines the timeline: on activation, uploadEndsAt and
+/// expiresAt are computed from T0 + the package's periods and stored here.
 /// </summary>
 public sealed class Event
 {
@@ -23,6 +24,19 @@ public sealed class Event
 
     /// <summary>T0 — the date the host picked as start of the upload period.</summary>
     public DateOnly UploadStartDate { get; set; }
+
+    /// <summary>
+    /// Chosen package id (Billing.Package). Plain Guid — no cross-module navigation;
+    /// package data is read via Billing's IPackageCatalog. Nullable only for events
+    /// created before packages existed; new events always set it (default Free).
+    /// </summary>
+    public Guid? PackageId { get; set; }
+
+    /// <summary>Last day uploads are accepted: T0 + package.UploadPeriodDays. Set on activation.</summary>
+    public DateOnly? UploadEndsAt { get; set; }
+
+    /// <summary>Gallery/storage end: T0 + package.RetentionDays. Set on activation. Drives Retention (M4).</summary>
+    public DateOnly? ExpiresAt { get; set; }
 
     /// <summary>R2 object key of the cover photo. Null until the host uploads one (M1, Media).</summary>
     public string? CoverPhotoKey { get; set; }

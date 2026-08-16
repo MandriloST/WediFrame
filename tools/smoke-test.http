@@ -7,11 +7,12 @@
 ###     naučeno 2026-07-14: objekt od 13 B umjesto slike).
 
 @baseUrl = http://localhost:5080/api/v1
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ3ZWRpZnJhbWUiLCJpc3MiOiJ3ZWRpZnJhbWUiLCJleHAiOjE3ODQzODQ4MjgsImlhdCI6MTc4NDM4MzAyOCwibmJmIjoxNzg0MzgzMDI4LCJzdWIiOiIxMjZiYjlmYy05NDY4LTRmN2UtOWIwNy0yNjI0NGIzMzUwY2IiLCJlbWFpbCI6InRlc3RAd2VkaWZyYW1lLmhyIiwicm9sZSI6Ikhvc3QifQ.Bd1QC8e-5kMHo2FWjE4xBs3m_aOT9wYwGxBiP2UMORI
-@eventId = 03769f9f-e07d-4b7e-9561-de52d777de83
-@guestToken = IXRqnmCbTf7k6D25J4v-lOftKsv7EyupFNiWqHFC6Ng
+@accesstoken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ3ZWRpZnJhbWUiLCJpc3MiOiJ3ZWRpZnJhbWUiLCJleHAiOjE3ODY3OTU0MDksImlhdCI6MTc4Njc5MzYwOSwibmJmIjoxNzg2NzkzNjA5LCJzdWIiOiJhZjJlZTgyYi1jMGIwLTRiZTctYTZmOC00ZDNhYjJmZjk0N2EiLCJlbWFpbCI6InByZG9uamFAZ21haWwuY29tIiwicm9sZSI6Ikhvc3QifQ.evo6Cw84yuV5XsjD2SHlt_ixjH-dtMeF-XdEY_furzc
+@eventId = 0f2b7fe0-f13f-403b-bafb-737985553b79
+@guestToken = jm1DjyQ13V1OQ6ZZ16QyrtCnDRaJee3jm20gq7gUhxI
 @coverKey = events/03769f9f-e07d-4b7e-9561-de52d777de83/cover/0497a2c764f2431cbef0d6e023c6c766.jpg
 @mediaId = OVDJE_ZALIJEPI_MEDIA_ID
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ3ZWRpZnJhbWUiLCJpc3MiOiJ3ZWRpZnJhbWUiLCJleHAiOjE3ODY3OTU0MDksImlhdCI6MTc4Njc5MzYwOSwibmJmIjoxNzg2NzkzNjA5LCJzdWIiOiJhZjJlZTgyYi1jMGIwLTRiZTctYTZmOC00ZDNhYjJmZjk0N2EiLCJlbWFpbCI6InByZG9uamFAZ21haWwuY29tIiwicm9sZSI6Ikhvc3QifQ.evo6Cw84yuV5XsjD2SHlt_ixjH-dtMeF-XdEY_furzc
 
 ### 1) Registracija hosta (ako user postoji -> auth.email_taken -> koristi korak 2)
 POST {{baseUrl}}/auth/register
@@ -28,8 +29,8 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "test@wediframe.hr",
-  "password": "Test-lozinka-123"
+  "email": "prdonja@gmail.com",
+  "password": "prdonja1!"
 }
 
 ### 3) Kreiraj event ("id" -> @eventId, "guestToken" -> @guestToken)
@@ -123,3 +124,35 @@ Content-Type: application/json
 }
 
 ### 12c) Confirm bez PUT-a -> media.not_uploaded (item ostaje Pending, može retry)
+
+### ─────────────────────────────────────────────────────────────────────────
+### M3 — Paketi (v22). Javni endpoint, ne treba auth.
+### Očekivano: 5 paketa (free, essential, classic, premium, brzi-i-zestoki),
+### poredani po sortOrder, s limitima u bytovima i cijenom u centima.
+GET {{baseUrl}}/packages
+
+### ─────────────────────────────────────────────────────────────────────────
+### M3 — Host stats (v26). Potrošnja vs limiti paketa (auth, vlasnik eventa).
+### Očekivano: photoCount/videoBytes/totalBytes + max* iz paketa + datumi.
+GET {{baseUrl}}/events/{{eventId}}/stats
+Authorization: Bearer {{token}}
+
+### ─────────────────────────────────────────────────────────────────────────
+### M3 — Stripe checkout (v28). Za PLAĆENI paket (Draft event), auth = vlasnik.
+### Vrati { "url": "https://checkout.stripe.com/..." } → otvori u browseru,
+### plati test karticom 4242 4242 4242 4242 (bilo koji budući datum + CVC).
+POST {{baseUrl}}/events/{{eventId}}/checkout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "needsR1": false,
+  "companyName": null,
+  "companyOib": null,
+  "companyAddress": null
+}
+
+### Webhook: NE poziva se ručno — Stripe ga šalje. Za lokalni test pokreni:
+###   stripe listen --forward-to localhost:5080/api/v1/webhooks/stripe
+### CLI ispiše whsec_... → stavi u Stripe:WebhookSecret. Nakon plaćanja test karticom
+### event se automatski aktivira (Draft → Active), a Purchase postaje Paid + fiskaliziran (manual).

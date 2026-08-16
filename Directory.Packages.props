@@ -12,6 +12,10 @@
     <PackageVersion Include="QRCoder" Version="1.8.0" />
     <!-- Storage (Cloudflare R2, S3-compatible) -->
     <PackageVersion Include="AWSSDK.S3" Version="4.0.102" />
+    <!-- Plaćanje: Stripe Checkout + webhook. API koji koristimo (SessionService,
+         EventUtility.ConstructEvent) stabilan je kroz v46–v51. Ako restore odbije
+         ovu verziju, bumpaj na najnoviju 51.x. -->
+    <PackageVersion Include="Stripe.net" Version="51.0.0" />
     <!-- Imaging: libvips thumbnails. NetVips.Native bundles the native libvips
          (with HEIF/HEIC) for all platforms — simplest cross-platform story for
          local dev + Railway (Linux). Slim later to NetVips.Native.linux-x64 if

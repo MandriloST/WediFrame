@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
+    <!-- Retention only schedules; the work lives behind module contracts:
+         IEventRetention (Events) flips status + finalizes deletion, and
+         IEventMediaPurge (Media) physically erases the media. Retention → both,
+         one-way, no cycle (Media → Events already exists; neither points back). -->
+    <ProjectReference Include="..\WediFrame.Modules.Events\WediFrame.Modules.Events.csproj" />
+    <ProjectReference Include="..\WediFrame.Modules.Media\WediFrame.Modules.Media.csproj" />
   </ItemGroup>
 </Project>

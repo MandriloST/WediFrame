@@ -30,9 +30,13 @@ public sealed class EventsModule : IModule
         services.AddScoped<IGuestEventAccess, GuestEventAccess>();
         services.AddScoped<IHostEventAccess, HostEventAccess>();
 
+        // Retention-driven status transitions (M4). The schedule lives in the
+        // Retention module's worker; the mutation lives here.
+        services.AddScoped<IEventRetention, EventRetention>();
+
         return services;
     }
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
-        => endpoints.MapEventEndpoints().MapGuestEndpoints();
+        => endpoints.MapEventEndpoints().MapGuestEndpoints().MapCheckoutEndpoints();
 }

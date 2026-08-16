@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using WediFrame.Modules.Billing.Services;
 using WediFrame.Modules.Events.Contracts;
 using WediFrame.Modules.Events.Domain;
 using WediFrame.Modules.Events.Services;
+using WediFrame.Shared.Audit;
 using WediFrame.Shared.Auth;
 using WediFrame.Shared.Options;
 using WediFrame.Shared.Storage;
@@ -24,6 +26,11 @@ public static class EventEndpoints
     private static readonly TimeSpan UploadUrlExpiry = TimeSpan.FromMinutes(15);
     internal static readonly TimeSpan ViewUrlExpiry = TimeSpan.FromHours(1);
 
+    // Free-tier abuse guard: how many live (Active/UploadClosed) free events one
+    // user may have at once. Assumption (owner may revise) — kept as a constant
+    // for now; move to config if it needs changing without a redeploy.
+    private const int MaxActiveFreeEventsPerUser = 1;
+
     public static IEndpointRouteBuilder MapEventEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/events").RequireAuthorization();
@@ -32,6 +39,8 @@ public static class EventEndpoints
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", GetAsync);
         group.MapPost("/{id:guid}/activate", ActivateAsync);
+        group.MapPost("/{id:guid}/close-upload", CloseUploadAsync);
+        group.MapPost("/{id:guid}/reopen-upload", ReopenUploadAsync);
         group.MapGet("/{id:guid}/qr", GetQrAsync);
         group.MapPost("/{id:guid}/cover", StartCoverUploadAsync);
         group.MapPost("/{id:guid}/cover/confirm", ConfirmCoverAsync);
@@ -43,6 +52,7 @@ public static class EventEndpoints
         CreateEventRequest request,
         ClaimsPrincipal principal,
         DbContext db,
+        IPackageCatalog packages,
         IOptions<FrontendOptions> frontend,
         IObjectStorage storage,
         TimeProvider timeProvider,
@@ -67,6 +77,14 @@ public static class EventEndpoints
             errors["type"] = ["events.type_unsupported"]; // only "wedding" in MVP
         }
 
+        // Package choice — defaults to Free/Trial when omitted (M3).
+        var slug = string.IsNullOrWhiteSpace(request.PackageSlug) ? "free" : request.PackageSlug;
+        var package = await packages.GetBySlugAsync(slug, ct);
+        if (package is null)
+        {
+            errors["packageSlug"] = ["events.package_invalid"]; // unknown/inactive package
+        }
+
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -79,6 +97,7 @@ public static class EventEndpoints
             Type = type,
             Title = title,
             UploadStartDate = request.UploadStartDate,
+            PackageId = package!.Id,
             Status = EventStatus.Draft,
             GuestToken = GuestTokenGenerator.NewToken(),
             CreatedAt = timeProvider.GetUtcNow(),
@@ -87,13 +106,14 @@ public static class EventEndpoints
         db.Set<Event>().Add(entity);
         await db.SaveChangesAsync(ct);
 
-        var response = await ToResponseAsync(entity, frontend.Value, storage, ct);
+        var response = await ToResponseAsync(entity, frontend.Value, storage, packages, ct);
         return Results.Created($"/api/v1/events/{entity.Id}", response);
     }
 
     private static async Task<IResult> ListAsync(
         ClaimsPrincipal principal,
         DbContext db,
+        IPackageCatalog packages,
         IOptions<FrontendOptions> frontend,
         IObjectStorage storage,
         CancellationToken ct)
@@ -111,7 +131,7 @@ public static class EventEndpoints
         var responses = new List<EventResponse>(events.Count);
         foreach (var e in events)
         {
-            responses.Add(await ToResponseAsync(e, frontend.Value, storage, ct));
+            responses.Add(await ToResponseAsync(e, frontend.Value, storage, packages, ct));
         }
 
         return Results.Ok(responses);
@@ -121,6 +141,7 @@ public static class EventEndpoints
         Guid id,
         ClaimsPrincipal principal,
         DbContext db,
+        IPackageCatalog packages,
         IOptions<FrontendOptions> frontend,
         IObjectStorage storage,
         CancellationToken ct)
@@ -128,7 +149,7 @@ public static class EventEndpoints
         var entity = await FindOwnedAsync(id, principal, db, ct);
         return entity is null
             ? Results.NotFound()
-            : Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, ct));
+            : Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
     }
 
     private static async Task<IResult> GetQrAsync(
@@ -222,6 +243,7 @@ public static class EventEndpoints
         ClaimsPrincipal principal,
         DbContext db,
         IObjectStorage storage,
+        IPackageCatalog packages,
         IOptions<FrontendOptions> frontend,
         CancellationToken ct)
     {
@@ -280,7 +302,7 @@ public static class EventEndpoints
             await storage.DeleteAsync(previousKey, ct);
         }
 
-        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, ct));
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
     }
 
     /// <summary>Owner check by query — a foreign event id yields 404, never 403 (no existence leak).</summary>
@@ -299,6 +321,7 @@ public static class EventEndpoints
         Guid id,
         ClaimsPrincipal principal,
         DbContext db,
+        IPackageCatalog packages,
         IOptions<FrontendOptions> frontend,
         IObjectStorage storage,
         CancellationToken ct)
@@ -318,7 +341,47 @@ public static class EventEndpoints
 
         if (entity.Status == EventStatus.Draft)
         {
+            var package = entity.PackageId is { } pid ? await packages.GetByIdAsync(pid, ct) : null;
+
+            // Paid packages activate only after payment (Stripe — next M3 step).
+            if (package is { IsFree: false })
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["status"] = ["events.payment_required"],
+                });
+            }
+
+            // Abuse guard for the Free tier: a user may run at most
+            // MaxActiveFreeEventsPerUser live free events at once (Draft doesn't
+            // count — it consumes nothing). Paid events are never limited.
+            if (package is { IsFree: true })
+            {
+                var activeFree = await db.Set<Event>().CountAsync(
+                    e => e.OwnerUserId == userId
+                        && e.PackageId == package.Id
+                        && (e.Status == EventStatus.Active || e.Status == EventStatus.UploadClosed),
+                    ct);
+
+                if (activeFree >= MaxActiveFreeEventsPerUser)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["status"] = ["events.free_limit_reached"],
+                    });
+                }
+            }
+
             entity.Status = EventStatus.Active;
+
+            // Lock the timeline from the package + T0. (Legacy events without a
+            // package activate without derived dates — backward compatible.)
+            if (package is not null)
+            {
+                entity.UploadEndsAt = entity.UploadStartDate.AddDays(package.UploadPeriodDays);
+                entity.ExpiresAt = entity.UploadStartDate.AddDays(package.RetentionDays);
+            }
+
             await db.SaveChangesAsync(ct);
         }
         else if (entity.Status != EventStatus.Active)
@@ -330,17 +393,89 @@ public static class EventEndpoints
             });
         }
 
-        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, ct));
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
+    }
+
+    /// <summary>
+    /// Host closes the upload period early (Active → UploadClosed): guests keep
+    /// the gallery but can no longer upload. Idempotent for already-closed events.
+    /// Retention (M4) will flip the SAME status automatically once packages define
+    /// the period; this manual control stays useful regardless.
+    /// </summary>
+    private static Task<IResult> CloseUploadAsync(
+        Guid id, ClaimsPrincipal principal, DbContext db, IPackageCatalog packages,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+        => SetUploadClosedAsync(id, closed: true, principal, db, packages, frontend, storage, timeProvider, ct);
+
+    /// <summary>
+    /// Host reopens a closed upload period (UploadClosed → Active). Idempotent for
+    /// already-open events. Only Active/UploadClosed events can toggle here.
+    /// </summary>
+    private static Task<IResult> ReopenUploadAsync(
+        Guid id, ClaimsPrincipal principal, DbContext db, IPackageCatalog packages,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+        => SetUploadClosedAsync(id, closed: false, principal, db, packages, frontend, storage, timeProvider, ct);
+
+    private static async Task<IResult> SetUploadClosedAsync(
+        Guid id, bool closed, ClaimsPrincipal principal, DbContext db, IPackageCatalog packages,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var entity = await db.Set<Event>()
+            .SingleOrDefaultAsync(e => e.Id == id && e.OwnerUserId == userId, ct);
+
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        var target = closed ? EventStatus.UploadClosed : EventStatus.Active;
+        var source = closed ? EventStatus.Active : EventStatus.UploadClosed;
+
+        if (entity.Status == source)
+        {
+            entity.Status = target;
+            db.Set<AuditLogEntry>().Add(new AuditLogEntry
+            {
+                Id = Guid.NewGuid(),
+                OccurredAt = timeProvider.GetUtcNow(),
+                ActorUserId = userId,
+                Action = closed ? "event.upload_closed" : "event.upload_reopened",
+                EntityType = nameof(Event),
+                EntityId = entity.Id.ToString(),
+            });
+            await db.SaveChangesAsync(ct);
+        }
+        else if (entity.Status != target)
+        {
+            // Draft/Expired/Deleted can't toggle the upload period.
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["status"] = [closed ? "events.cannot_close_upload" : "events.cannot_reopen_upload"],
+            });
+        }
+
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
     }
 
     private static async Task<EventResponse> ToResponseAsync(
-        Event e, FrontendOptions frontend, IObjectStorage storage, CancellationToken ct)
+        Event e, FrontendOptions frontend, IObjectStorage storage, IPackageCatalog packages, CancellationToken ct)
     {
         var coverUrl = e.CoverPhotoKey is null
             ? null
             : (await storage.PresignGetAsync(e.CoverPhotoKey, ViewUrlExpiry, ct)).ToString();
 
+        var package = e.PackageId is { } pid ? await packages.GetByIdAsync(pid, ct) : null;
+
         return new EventResponse(e.Id, e.Title, e.Type, e.UploadStartDate, e.Status.ToString(),
-            e.GuestToken, frontend.BuildGuestUrl(e.GuestToken), e.CoverPhotoKey, coverUrl, e.CreatedAt);
+            e.GuestToken, frontend.BuildGuestUrl(e.GuestToken), e.CoverPhotoKey, coverUrl, e.CreatedAt,
+            package?.Slug, package?.Name, e.UploadEndsAt, e.ExpiresAt);
     }
 }

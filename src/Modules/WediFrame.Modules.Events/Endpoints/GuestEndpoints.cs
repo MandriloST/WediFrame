@@ -43,6 +43,7 @@ public static class GuestEndpoints
             : (await storage.PresignGetAsync(ev.CoverPhotoKey, EventEndpoints.ViewUrlExpiry, ct)).ToString();
 
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var uploadState = ev.UploadStateFor(today);
 
         return Results.Ok(new GuestEventInfoResponse(
             ev.Title,
@@ -50,6 +51,7 @@ public static class GuestEndpoints
             ev.UploadStartDate,
             ev.Status.ToString(),
             coverUrl,
-            ev.IsUploadOpen(today)));
+            uploadState == GuestUploadState.Open,
+            uploadState.ToString()));
     }
 }

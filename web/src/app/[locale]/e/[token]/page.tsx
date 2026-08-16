@@ -76,7 +76,11 @@ export default async function GuestPage({ params }: Props) {
       </header>
 
       {/* Upload (the page's single job) + the gallery every guest can see. */}
-      <GuestExperience token={token} uploadOpen={event.uploadOpen} />
+      <GuestExperience
+        token={token}
+        uploadState={event.uploadState}
+        uploadStartDate={event.uploadStartDate}
+      />
 
       <footer className="mt-auto px-5 pb-6 pt-10 text-center text-xs text-[#A8A29E]">
         WediFrame · Powered by EverFrame

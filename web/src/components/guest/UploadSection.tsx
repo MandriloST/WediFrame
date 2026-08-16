@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
+import type { UploadState } from "@/lib/guestApi";
 import {
   MAX_ITEMS_PER_REQUEST,
   PHOTO_ALLOWED_TYPES,
   PHOTO_MAX_BYTES,
   VIDEO_ALLOWED_TYPES,
   VIDEO_MAX_BYTES,
+  GuestUploadError,
   abortVideoUpload,
   completeVideoUpload,
   confirmUpload,
@@ -113,6 +115,33 @@ function isVideoType(contentType: string): boolean {
   return contentType.toLowerCase().startsWith("video/");
 }
 
+/** Parse a "yyyy-MM-dd" date into a LOCAL Date (no UTC off-by-one). */
+function parseYmd(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y || 1970, (m || 1) - 1, d || 1);
+}
+
+/** Map a backend upload error to an i18n key under guest.errors. */
+function uploadErrorKey(e: unknown): string {
+  if (e instanceof GuestUploadError) {
+    switch (e.code) {
+      case "media.quota_photo_count":
+        return "quotaPhotoCount";
+      case "media.quota_video_bytes":
+        return "quotaVideoBytes";
+      case "media.quota_total_bytes":
+        return "quotaTotalBytes";
+      case "media.upload_closed":
+        return "uploadClosedError";
+      case "media.file_too_large":
+        return "fileTooLarge";
+      case "media.type_unsupported":
+        return "typeUnsupported";
+    }
+  }
+  return "uploadFailed";
+}
+
 /** Some phones report an empty file.type — fall back to the extension. */
 function resolveContentType(file: File): string | null {
   const type = file.type?.toLowerCase();
@@ -137,14 +166,17 @@ function resolveContentType(file: File): string | null {
 
 export function UploadSection({
   token,
-  uploadOpen,
+  uploadState,
+  uploadStartDate,
   onConfirmed,
 }: {
   token: string;
-  uploadOpen: boolean;
+  uploadState: UploadState;
+  uploadStartDate: string;
   onConfirmed?: (item: ConfirmedUpload) => void;
 }) {
   const t = useTranslations("guest");
+  const format = useFormatter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<QueueItem[]>([]);
   const [guestName, setGuestName] = useState("");
@@ -214,8 +246,8 @@ export function UploadSection({
           file: item.file,
           contentType: item.contentType,
         });
-      } catch {
-        patch(item.id, { status: "failed", errorKey: "uploadFailed" });
+      } catch (e) {
+        patch(item.id, { status: "failed", errorKey: uploadErrorKey(e) });
         if (mediaId) void abortVideoUpload(token, mediaId);
       }
     },
@@ -272,8 +304,8 @@ export function UploadSection({
           file,
           contentType,
         });
-      } catch {
-        patch(item.id, { status: "failed", errorKey: "uploadFailed" });
+      } catch (e) {
+        patch(item.id, { status: "failed", errorKey: uploadErrorKey(e) });
       }
     },
     [token, patch, uploadVideo],
@@ -362,11 +394,28 @@ export function UploadSection({
   const failed = items.filter((i) => i.status === "failed").length;
   const busy = items.length - done - failed;
 
-  if (!uploadOpen) {
+  // Upload period is over — the gallery stays below, but no new uploads.
+  if (uploadState === "Closed") {
     return (
       <section className="px-5 pt-8 text-center">
         <p className="rounded-2xl border border-[#E7E0D8] bg-[#FFFDF9] px-6 py-5 text-sm text-[#57534E]">
           {t("uploadClosed")}
+        </p>
+      </section>
+    );
+  }
+
+  // Before T0 — uploads open later; tell the guest when.
+  if (uploadState === "NotStarted") {
+    const startsOn = format.dateTime(parseYmd(uploadStartDate), {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    return (
+      <section className="px-5 pt-8 text-center">
+        <p className="rounded-2xl border border-[#E7E0D8] bg-[#FFFDF9] px-6 py-5 text-sm text-[#57534E]">
+          {t("uploadNotStarted", { date: startsOn })}
         </p>
       </section>
     );

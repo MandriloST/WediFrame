@@ -22,6 +22,238 @@ namespace WediFrame.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("WediFrame.Modules.Billing.Domain.Package", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("MaxFileBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("MaxPhotoCount")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("MaxTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MaxVideoTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("PriceCents")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UploadPeriodDays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("packages", "billing");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-000000000001"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 8, 13, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Currency = "EUR",
+                            IsActive = true,
+                            MaxFileBytes = 2147483648L,
+                            MaxPhotoCount = 50,
+                            MaxTotalBytes = 262144000L,
+                            MaxVideoTotalBytes = 52428800L,
+                            Name = "Free",
+                            PriceCents = 0,
+                            RetentionDays = 7,
+                            Slug = "free",
+                            SortOrder = 0,
+                            UploadPeriodDays = 2
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-000000000002"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 8, 13, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Currency = "EUR",
+                            IsActive = true,
+                            MaxFileBytes = 2147483648L,
+                            MaxPhotoCount = 500,
+                            MaxTotalBytes = 10737418240L,
+                            MaxVideoTotalBytes = 5368709120L,
+                            Name = "Essential",
+                            PriceCents = 2500,
+                            RetentionDays = 90,
+                            Slug = "essential",
+                            SortOrder = 1,
+                            UploadPeriodDays = 30
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-000000000003"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 8, 13, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Currency = "EUR",
+                            IsActive = true,
+                            MaxFileBytes = 2147483648L,
+                            MaxPhotoCount = 1500,
+                            MaxTotalBytes = 21474836480L,
+                            MaxVideoTotalBytes = 16106127360L,
+                            Name = "Classic",
+                            PriceCents = 4000,
+                            RetentionDays = 365,
+                            Slug = "classic",
+                            SortOrder = 2,
+                            UploadPeriodDays = 60
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-000000000004"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 8, 13, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Currency = "EUR",
+                            IsActive = true,
+                            MaxFileBytes = 2147483648L,
+                            MaxPhotoCount = 5000,
+                            MaxTotalBytes = 53687091200L,
+                            MaxVideoTotalBytes = 42949672960L,
+                            Name = "Premium",
+                            PriceCents = 8000,
+                            RetentionDays = 365,
+                            Slug = "premium",
+                            SortOrder = 3,
+                            UploadPeriodDays = 120
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-000000000005"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 8, 13, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Currency = "EUR",
+                            IsActive = true,
+                            MaxFileBytes = 2147483648L,
+                            MaxPhotoCount = 5000,
+                            MaxTotalBytes = 53687091200L,
+                            MaxVideoTotalBytes = 42949672960L,
+                            Name = "Brzi i žestoki",
+                            PriceCents = 5000,
+                            RetentionDays = 60,
+                            Slug = "brzi-i-zestoki",
+                            SortOrder = 4,
+                            UploadPeriodDays = 14
+                        });
+                });
+
+            modelBuilder.Entity("WediFrame.Modules.Billing.Domain.Purchase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AmountCents")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CompanyAddress")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CompanyOib")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FiscalInvoiceNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("FiscalJir")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("FiscalProvider")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("FiscalStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("FiscalZki")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTimeOffset?>("FiscalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("NeedsR1")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentProvider")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("PaymentReference");
+
+                    b.ToTable("purchases", "billing");
+                });
+
             modelBuilder.Entity("WediFrame.Modules.Events.Domain.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -35,12 +267,18 @@ namespace WediFrame.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly?>("ExpiresAt")
+                        .HasColumnType("date");
+
                     b.Property<string>("GuestToken")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PackageId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Status")
@@ -58,10 +296,15 @@ namespace WediFrame.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateOnly?>("UploadEndsAt")
+                        .HasColumnType("date");
+
                     b.Property<DateOnly>("UploadStartDate")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
 
                     b.HasIndex("GuestToken")
                         .IsUnique();
@@ -139,6 +382,58 @@ namespace WediFrame.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("users", "identity");
+                });
+
+            modelBuilder.Entity("WediFrame.Modules.Media.Domain.MediaExport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ItemCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ObjectKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("media_exports", "media");
                 });
 
             modelBuilder.Entity("WediFrame.Modules.Media.Domain.MediaItem", b =>

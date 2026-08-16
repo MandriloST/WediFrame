@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { UploadState } from "@/lib/guestApi";
 import { UploadSection, type ConfirmedUpload } from "./UploadSection";
 import { Gallery, type GalleryPreview } from "./Gallery";
 
@@ -11,10 +12,12 @@ import { Gallery, type GalleryPreview } from "./Gallery";
  */
 export function GuestExperience({
   token,
-  uploadOpen,
+  uploadState,
+  uploadStartDate,
 }: {
   token: string;
-  uploadOpen: boolean;
+  uploadState: UploadState;
+  uploadStartDate: string;
 }) {
   const [previews, setPreviews] = useState<GalleryPreview[]>([]);
   const objectUrls = useRef<string[]>([]);
@@ -39,7 +42,8 @@ export function GuestExperience({
     <>
       <UploadSection
         token={token}
-        uploadOpen={uploadOpen}
+        uploadState={uploadState}
+        uploadStartDate={uploadStartDate}
         onConfirmed={handleConfirmed}
       />
       <Gallery token={token} previews={previews} />
