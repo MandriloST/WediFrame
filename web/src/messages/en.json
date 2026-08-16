@@ -202,7 +202,15 @@
     "cannotCheckout": "This event can’t be checked out right now.",
     "checkoutSuccess": "Payment successful — your event is active!",
     "checkoutCancel": "Payment was cancelled. You can try again.",
-    "freeLimitReached": "You already have an active free event. Choose a paid package for a new one, or wait for the first to expire."
+    "freeLimitReached": "You already have an active free event. Choose a paid package for a new one, or wait for the first to expire.",
+    "dangerZone": "Danger zone",
+    "deleteHint": "Permanently deletes the event and all its photos and videos. This cannot be undone.",
+    "deleteEvent": "Delete event",
+    "deleteConfirmBody": "Are you sure? All of this event's media and the gallery will be permanently deleted. This cannot be undone.",
+    "deleteCancel": "Cancel",
+    "deleteConfirm": "Yes, delete",
+    "deleting": "Deleting…",
+    "deleteError": "Delete failed. Please try again."
   },
   "hostGallery": {
     "back": "Back",

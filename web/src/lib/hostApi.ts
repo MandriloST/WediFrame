@@ -223,6 +223,16 @@ export async function getEvent(id: string): Promise<HostEvent> {
   return (await res.json()) as HostEvent;
 }
 
+/**
+ * Permanently delete the host's own event (right to erasure): the backend
+ * purges all media (R2 + rows), removes the cover and marks the event Deleted.
+ * Irreversible. Returns nothing (204).
+ */
+export async function deleteEvent(id: string): Promise<void> {
+  const res = await authFetch(`/events/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+}
+
 /** QR as a PNG blob (the endpoint needs auth, so we can't use a plain <img src>). */
 export async function getQrPng(id: string, size = 20): Promise<Blob> {
   const res = await authFetch(`/events/${id}/qr?format=png&size=${size}`);

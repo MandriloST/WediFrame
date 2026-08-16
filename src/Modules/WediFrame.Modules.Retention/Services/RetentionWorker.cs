@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WediFrame.Modules.Events.Services;
-using WediFrame.Modules.Media.Services;
+using WediFrame.Shared.Media;
 
 namespace WediFrame.Modules.Retention.Services;
 
@@ -126,7 +126,9 @@ public sealed class RetentionWorker(
                 // Erase media FIRST, mark the event Deleted only after — so a
                 // failure never leaves a Deleted event with orphaned R2 bytes.
                 var result = await purge.PurgeAsync(eventId, ct);
-                await retention.FinalizeDeletionAsync(eventId, result.MediaDeleted, result.ExportsDeleted, ct);
+                await retention.FinalizeDeletionAsync(
+                    eventId, result.MediaDeleted, result.ExportsDeleted,
+                    actorUserId: null, EventDeletionCause.RetentionGrace, ct);
                 purged++;
 
                 logger.LogInformation(

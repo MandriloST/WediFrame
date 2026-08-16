@@ -10,6 +10,7 @@ using WediFrame.Modules.Events.Domain;
 using WediFrame.Modules.Events.Services;
 using WediFrame.Shared.Audit;
 using WediFrame.Shared.Auth;
+using WediFrame.Shared.Media;
 using WediFrame.Shared.Options;
 using WediFrame.Shared.Storage;
 
@@ -44,6 +45,7 @@ public static class EventEndpoints
         group.MapGet("/{id:guid}/qr", GetQrAsync);
         group.MapPost("/{id:guid}/cover", StartCoverUploadAsync);
         group.MapPost("/{id:guid}/cover/confirm", ConfirmCoverAsync);
+        group.MapDelete("/{id:guid}", DeleteAsync);
 
         return endpoints;
     }
@@ -463,6 +465,45 @@ public static class EventEndpoints
         }
 
         return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
+    }
+
+    /// <summary>
+    /// Host deletes their own event (right to erasure, GDPR). Reuses the exact
+    /// retention primitives — <see cref="IEventMediaPurge"/> erases the media
+    /// (R2 + rows), then <see cref="IEventRetention.FinalizeDeletionAsync"/>
+    /// removes the cover, flips the event to Deleted and audits it — only here
+    /// the actor is the host and it fires immediately instead of after grace.
+    /// Purge runs BEFORE finalize so a failure never leaves a Deleted event with
+    /// orphaned bytes; idempotent, so a retry after a partial failure is safe.
+    /// </summary>
+    private static async Task<IResult> DeleteAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        DbContext db,
+        IEventMediaPurge purge,
+        IEventRetention retention,
+        CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Ownership + not-already-deleted check, mirroring the other handlers.
+        var owns = await db.Set<Event>().AnyAsync(
+            e => e.Id == id && e.OwnerUserId == userId && e.Status != EventStatus.Deleted, ct);
+
+        if (!owns)
+        {
+            return Results.NotFound();
+        }
+
+        var result = await purge.PurgeAsync(id, ct);
+        await retention.FinalizeDeletionAsync(
+            id, result.MediaDeleted, result.ExportsDeleted,
+            actorUserId: userId, EventDeletionCause.HostRequest, ct);
+
+        return Results.NoContent();
     }
 
     private static async Task<EventResponse> ToResponseAsync(

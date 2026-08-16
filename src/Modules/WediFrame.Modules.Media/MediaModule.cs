@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WediFrame.Modules.Media.Endpoints;
 using WediFrame.Modules.Media.Services;
+using WediFrame.Shared.Media;
 using WediFrame.Shared.Modules;
 
 namespace WediFrame.Modules.Media;

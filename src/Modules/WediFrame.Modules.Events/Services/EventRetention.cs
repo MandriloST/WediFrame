@@ -48,8 +48,22 @@ public interface IEventRetention
     /// Deleted, and audit it. Call this ONLY after the event's media has been
     /// purged. Idempotent — an already-Deleted or missing event is a no-op. The
     /// media/export counts are recorded in the audit entry for the erasure trail.
+    /// <paramref name="actorUserId"/> is the host for a manual delete, or null for
+    /// the retention job; <paramref name="cause"/> selects the audit action.
     /// </summary>
-    Task FinalizeDeletionAsync(Guid eventId, int mediaDeleted, int exportsDeleted, CancellationToken ct = default);
+    Task FinalizeDeletionAsync(
+        Guid eventId, int mediaDeleted, int exportsDeleted,
+        Guid? actorUserId, EventDeletionCause cause, CancellationToken ct = default);
+}
+
+/// <summary>Why an event was hard-deleted — drives the audit action/reason.</summary>
+public enum EventDeletionCause
+{
+    /// <summary>Retention job, after the grace period past ExpiresAt.</summary>
+    RetentionGrace = 0,
+
+    /// <summary>Host asked to delete their own event (right to erasure).</summary>
+    HostRequest = 1,
 }
 
 /// <summary>Counts from one retention sweep.</summary>
@@ -173,7 +187,8 @@ public sealed class EventRetention(DbContext db, TimeProvider timeProvider, IObj
     }
 
     public async Task FinalizeDeletionAsync(
-        Guid eventId, int mediaDeleted, int exportsDeleted, CancellationToken ct = default)
+        Guid eventId, int mediaDeleted, int exportsDeleted,
+        Guid? actorUserId, EventDeletionCause cause, CancellationToken ct = default)
     {
         var e = await db.Set<Event>().SingleOrDefaultAsync(x => x.Id == eventId, ct);
 
@@ -192,17 +207,23 @@ public sealed class EventRetention(DbContext db, TimeProvider timeProvider, IObj
 
         e.Status = EventStatus.Deleted;
 
+        var (action, reason) = cause switch
+        {
+            EventDeletionCause.HostRequest => ("event.deleted_by_host", "host_request"),
+            _ => ("event.purged", "retention_grace"),
+        };
+
         db.Set<AuditLogEntry>().Add(new AuditLogEntry
         {
             Id = Guid.NewGuid(),
             OccurredAt = timeProvider.GetUtcNow(),
-            ActorUserId = null, // system / background job
-            Action = "event.purged",
+            ActorUserId = actorUserId, // host for a manual delete, null for the job
+            Action = action,
             EntityType = nameof(Event),
             EntityId = e.Id.ToString(),
             Details = JsonSerializer.Serialize(new
             {
-                reason = "retention_grace",
+                reason,
                 mediaDeleted,
                 exportsDeleted,
             }),
