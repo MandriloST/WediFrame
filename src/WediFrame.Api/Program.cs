@@ -77,7 +77,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    o.KnownNetworks.Clear();
+    o.KnownIPNetworks.Clear();
     o.KnownProxies.Clear();
 });
 

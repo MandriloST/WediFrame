@@ -217,6 +217,16 @@ export async function reopenUpload(id: string): Promise<HostEvent> {
   return (await res.json()) as HostEvent;
 }
 
+/**
+ * Regenerate the guest token if the link/QR leaks. Every previously shared
+ * link/QR immediately stops working; returns the event with the new token/URL.
+ */
+export async function rotateGuestToken(id: string): Promise<HostEvent> {
+  const res = await authFetch(`/events/${id}/rotate-token`, { method: "POST" });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as HostEvent;
+}
+
 export async function getEvent(id: string): Promise<HostEvent> {
   const res = await authFetch(`/events/${id}`);
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));

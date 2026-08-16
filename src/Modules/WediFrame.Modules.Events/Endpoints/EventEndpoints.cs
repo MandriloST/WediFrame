@@ -42,6 +42,7 @@ public static class EventEndpoints
         group.MapPost("/{id:guid}/activate", ActivateAsync);
         group.MapPost("/{id:guid}/close-upload", CloseUploadAsync);
         group.MapPost("/{id:guid}/reopen-upload", ReopenUploadAsync);
+        group.MapPost("/{id:guid}/rotate-token", RotateTokenAsync);
         group.MapGet("/{id:guid}/qr", GetQrAsync);
         group.MapPost("/{id:guid}/cover", StartCoverUploadAsync);
         group.MapPost("/{id:guid}/cover/confirm", ConfirmCoverAsync);
@@ -463,6 +464,56 @@ public static class EventEndpoints
                 ["status"] = [closed ? "events.cannot_close_upload" : "events.cannot_reopen_upload"],
             });
         }
+
+        return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
+    }
+
+    /// <summary>
+    /// Host regenerates the guest token if the link/QR leaks. A new 256-bit token
+    /// replaces the old one, so every previously shared link/QR immediately 404s.
+    /// Allowed for live, shareable events (Draft/Active/UploadClosed); Expired and
+    /// Deleted can't rotate. Returns the event with the new token + guest URL so the
+    /// client can refresh the QR.
+    /// </summary>
+    private static async Task<IResult> RotateTokenAsync(
+        Guid id, ClaimsPrincipal principal, DbContext db, IPackageCatalog packages,
+        IOptions<FrontendOptions> frontend, IObjectStorage storage,
+        TimeProvider timeProvider, CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var entity = await db.Set<Event>()
+            .SingleOrDefaultAsync(e => e.Id == id && e.OwnerUserId == userId, ct);
+
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (entity.Status is EventStatus.Expired or EventStatus.Deleted)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["status"] = ["events.cannot_rotate_token"],
+            });
+        }
+
+        entity.GuestToken = GuestTokenGenerator.NewToken();
+
+        db.Set<AuditLogEntry>().Add(new AuditLogEntry
+        {
+            Id = Guid.NewGuid(),
+            OccurredAt = timeProvider.GetUtcNow(),
+            ActorUserId = userId,
+            Action = "event.token_rotated",
+            EntityType = nameof(Event),
+            EntityId = entity.Id.ToString(),
+        });
+
+        await db.SaveChangesAsync(ct);
 
         return Results.Ok(await ToResponseAsync(entity, frontend.Value, storage, packages, ct));
     }
