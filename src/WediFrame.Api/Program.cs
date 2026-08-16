@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using WediFrame.Infrastructure.Persistence;
 using WediFrame.Infrastructure.Storage;
 using WediFrame.Infrastructure.Imaging;
+using WediFrame.Infrastructure.Email;
 using WediFrame.Modules.Admin;
 using WediFrame.Modules.Billing;
 using WediFrame.Modules.Events;
@@ -34,6 +35,11 @@ builder.Services.AddR2Storage(builder.Configuration);
 /// Thumbnail generation (libvips via NetVips). A technology concern like R2;
 // the Media module's background worker depends only on IThumbnailGenerator.
 builder.Services.AddImaging();
+
+// Transactional email (SMTP). No-op logging sender until the "Email" section is
+// configured, so the API boots and nothing is sent by accident. Consumed by the
+// retention reminder (Retention worker) via IEmailSender.
+builder.Services.AddEmail(builder.Configuration);
 
 // --- AuthN/AuthZ ---------------------------------------------------------------
 // JWT bearer for host/admin endpoints. Guests are authorized by event token

@@ -54,7 +54,22 @@ public interface IEventRetention
     Task FinalizeDeletionAsync(
         Guid eventId, int mediaDeleted, int exportsDeleted,
         Guid? actorUserId, EventDeletionCause cause, CancellationToken ct = default);
+
+    /// <summary>
+    /// Live events (Active/UploadClosed) whose gallery expires within the next
+    /// <paramref name="daysBefore"/> days and which haven't been reminded yet.
+    /// The caller emails the owner, then calls <see cref="MarkReminderSentAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<RetentionReminderTarget>> FindDueForReminderAsync(
+        int daysBefore, CancellationToken ct = default);
+
+    /// <summary>Record that the expiry reminder was sent (idempotency guard). </summary>
+    Task MarkReminderSentAsync(Guid eventId, CancellationToken ct = default);
 }
+
+/// <summary>What the reminder job needs to email a host about one expiring event.</summary>
+public sealed record RetentionReminderTarget(
+    Guid EventId, string Title, Guid OwnerUserId, DateOnly ExpiresAt);
 
 /// <summary>Why an event was hard-deleted — drives the audit action/reason.</summary>
 public enum EventDeletionCause
@@ -230,5 +245,31 @@ public sealed class EventRetention(DbContext db, TimeProvider timeProvider, IObj
         });
 
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<RetentionReminderTarget>> FindDueForReminderAsync(
+        int daysBefore, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var horizon = today.AddDays(Math.Max(0, daysBefore));
+
+        // Live events expiring within [today, horizon] that we haven't reminded.
+        return await db.Set<Event>()
+            .Where(e => (e.Status == EventStatus.Active || e.Status == EventStatus.UploadClosed)
+                && e.RetentionReminderSentAt == null
+                && e.ExpiresAt != null
+                && e.ExpiresAt >= today
+                && e.ExpiresAt <= horizon)
+            .OrderBy(e => e.ExpiresAt)
+            .Take(BatchSize)
+            .Select(e => new RetentionReminderTarget(e.Id, e.Title, e.OwnerUserId, e.ExpiresAt!.Value))
+            .ToListAsync(ct);
+    }
+
+    public async Task MarkReminderSentAsync(Guid eventId, CancellationToken ct = default)
+    {
+        await db.Set<Event>()
+            .Where(e => e.Id == eventId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.RetentionReminderSentAt, timeProvider.GetUtcNow()), ct);
     }
 }

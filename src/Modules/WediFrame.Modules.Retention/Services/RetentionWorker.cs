@@ -3,28 +3,32 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WediFrame.Modules.Events.Services;
+using WediFrame.Shared.Directory;
+using WediFrame.Shared.Email;
 using WediFrame.Shared.Media;
+using WediFrame.Shared.Options;
 
 namespace WediFrame.Modules.Retention.Services;
 
 /// <summary>
 /// Background worker that drives the event lifecycle end (M4). It owns only the
-/// *schedule*; the actual work lives behind module contracts (Retention →
-/// Events + Media, one-way, no cycle). Same shape as Media's thumbnail/export
-/// workers: runs in the API process (single Railway service), the DB is the
-/// source of truth, idempotent and self-healing (a crash just leaves work for
-/// the next tick).
+/// *schedule*; the actual work lives behind contracts (Retention → Events +
+/// Shared ports, one-way, no cycle). Same shape as Media's thumbnail/export
+/// workers: runs in the API process, the DB is the source of truth, idempotent
+/// and self-healing (a crash just leaves work for the next tick).
 ///
 /// Each tick:
 ///   Phase 1 — status transitions (Active→UploadClosed→Expired) via IEventRetention.
+///   Phase 4 — email the host a "gallery expires soon" reminder N days before
+///             ExpiresAt (once per event), via IEmailSender + IUserDirectory.
 ///   Phase 2 — after grace, physically erase Expired events: IEventMediaPurge
 ///             deletes the media (R2 + rows), then IEventRetention finalizes
-///             (cover + status Deleted + audit). Purge runs BEFORE finalize so a
-///             failure never leaves a Deleted event with orphaned bytes.
+///             (cover + status Deleted + audit). Purge runs BEFORE finalize.
 /// </summary>
 public sealed class RetentionWorker(
     IServiceScopeFactory scopeFactory,
     IOptions<RetentionOptions> options,
+    IOptions<FrontendOptions> frontend,
     ILogger<RetentionWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,6 +55,7 @@ public sealed class RetentionWorker(
             try
             {
                 await SweepAsync(stoppingToken);
+                await SendRemindersAsync(stoppingToken);
                 await PurgeDueAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -88,6 +93,78 @@ public sealed class RetentionWorker(
             logger.LogInformation(
                 "Retention sweep: {UploadClosed} upload-closed, {Expired} expired.",
                 result.UploadClosed, result.Expired);
+        }
+    }
+
+    private async Task SendRemindersAsync(CancellationToken ct)
+    {
+        var daysBefore = options.Value.ReminderDaysBefore;
+        if (daysBefore <= 0)
+        {
+            return; // reminders disabled
+        }
+
+        // 1) Find due events, then resolve owner contacts in one batch.
+        IReadOnlyList<RetentionReminderTarget> targets;
+        IReadOnlyDictionary<Guid, UserContact> contacts;
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var retention = scope.ServiceProvider.GetRequiredService<IEventRetention>();
+            targets = await retention.FindDueForReminderAsync(daysBefore, ct);
+            if (targets.Count == 0)
+            {
+                return;
+            }
+
+            var directory = scope.ServiceProvider.GetRequiredService<IUserDirectory>();
+            var ownerIds = targets.Select(t => t.OwnerUserId).Distinct().ToArray();
+            contacts = await directory.GetContactsAsync(ownerIds, ct);
+        }
+
+        var appBaseUrl = frontend.Value.AppBaseUrl.TrimEnd('/');
+        var sent = 0;
+
+        // 2) Send one email per event, then mark it sent — only after a
+        //    successful send, so a failure retries on the next tick.
+        foreach (var target in targets)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                break;
+            }
+
+            if (!contacts.TryGetValue(target.OwnerUserId, out var contact))
+            {
+                continue; // owner vanished; skip (don't mark, in case it returns)
+            }
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var retention = scope.ServiceProvider.GetRequiredService<IEventRetention>();
+
+                var manageUrl = $"{appBaseUrl}/dashboard/events/{target.EventId}";
+                var message = RetentionReminderEmail.Build(
+                    contact.Language, contact.Email, target.Title, target.ExpiresAt, manageUrl);
+
+                await emailSender.SendAsync(message, ct);
+                await retention.MarkReminderSentAsync(target.EventId, ct);
+                sent++;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Retention reminder failed for event {EventId}; will retry next poll.", target.EventId);
+            }
+        }
+
+        if (sent > 0)
+        {
+            logger.LogInformation("Retention reminder: {Count} expiry email(s) sent.", sent);
         }
     }
 
