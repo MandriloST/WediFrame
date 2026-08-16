@@ -1,5 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Admin owns no entities; it reads shared.audit_log (entity lives in Shared).
+         The base EF Core package provides DbContext + Set<T> + async LINQ operators
+         (ToListAsync/CountAsync). No provider/relational package needed — Admin never
+         configures entities. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Admin depends only on Shared: IModule, AuditLogEntry (shared schema) and the
+         IAdminIdentity cross-module contract (implemented by Identity). No reference
+         to Identity/Events/Media — Admin is a pure leaf consumer, so no cycles. -->
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
   </ItemGroup>
 </Project>

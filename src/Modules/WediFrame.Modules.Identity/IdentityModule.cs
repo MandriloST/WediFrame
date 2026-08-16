@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WediFrame.Modules.Identity.Domain;
 using WediFrame.Modules.Identity.Endpoints;
 using WediFrame.Modules.Identity.Services;
+using WediFrame.Shared.Admin;
 using WediFrame.Shared.Directory;
 using WediFrame.Shared.Modules;
 
@@ -33,6 +34,10 @@ public sealed class IdentityModule : IModule
 
         // Cross-module host contact lookup (email + language) for notifications.
         services.AddScoped<IUserDirectory, UserDirectory>();
+
+        // Cross-module admin operations on users (Admin module bootstrap, later
+        // user management). Implemented here, consumed via the Shared contract.
+        services.AddScoped<IAdminIdentity, AdminIdentity>();
 
         return services;
     }

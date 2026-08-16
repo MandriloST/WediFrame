@@ -246,5 +246,37 @@
     "exportReady": "ZIP spreman",
     "exportHint": "Ovo može potrajati par minuta za veće galerije.",
     "exportError": "Priprema ZIP-a nije uspjela. Pokušaj ponovno."
+  },
+  "admin": {
+  "brand": "WediFrame Admin",
+  "backToApp": "Natrag na aplikaciju",
+  "logout": "Odjava",
+  "nav": { "overview": "Pregled", "audit": "Zapisnik (audit)", "users": "Korisnici", "events": "Eventi" },
+  "home": {
+    "title": "Administracija",
+    "subtitle": "Interni pregled i moderacija.",
+    "auditDesc": "Sve zabilježene radnje u sustavu, s filterima.",
+    "usersDesc": "Pregled i upravljanje korisnicima.",
+    "eventsDesc": "Pregled i moderacija evenata.",
+    "soon": "Uskoro"
+    },
+    "audit": {
+      "title": "Zapisnik radnji",
+      "subtitle": "Sve zabilježene radnje, najnovije prvo.",
+      "filters": {
+        "entityType": "Tip entiteta", "entityTypeAny": "Svi tipovi",
+        "action": "Radnja", "actionPlaceholder": "npr. event.deleted",
+        "entityId": "ID entiteta", "from": "Od", "to": "Do",
+        "apply": "Primijeni", "reset": "Poništi"
+      },
+      "col": { "time": "Vrijeme", "action": "Radnja", "entity": "Entitet", "actor": "Akter", "details": "Detalji" },
+      "system": "Sustav",
+      "empty": "Nema zapisa za odabrane filtere.",
+      "error": "Zapisnik nije moguće dohvatiti.",
+      "loading": "Učitavanje…",
+      "prev": "Prethodna", "next": "Sljedeća",
+      "pageOf": "Stranica {page} od {pages}",
+      "totalCount": "{total} zapisa"
+    }
   }
 }
