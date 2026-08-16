@@ -202,7 +202,15 @@
     "cannotCheckout": "Ovaj event se trenutno ne može platiti.",
     "checkoutSuccess": "Plaćanje uspješno — event je aktiviran!",
     "checkoutCancel": "Plaćanje je otkazano. Možeš pokušati ponovno.",
-    "freeLimitReached": "Već imaš aktivan besplatni event. Za novi odaberi plaćeni paket ili pričekaj da prvi istekne."
+    "freeLimitReached": "Već imaš aktivan besplatni event. Za novi odaberi plaćeni paket ili pričekaj da prvi istekne.",
+    "dangerZone": "Opasna zona",
+    "deleteHint": "Trajno briše event i sve fotografije i videe. Ova radnja se ne može poništiti.",
+    "deleteEvent": "Obriši event",
+    "deleteConfirmBody": "Sigurno? Svi mediji ovog eventa i galerija bit će trajno obrisani. Ovo se ne može poništiti.",
+    "deleteCancel": "Odustani",
+    "deleteConfirm": "Da, obriši",
+    "deleting": "Brišem…",
+    "deleteError": "Brisanje nije uspjelo. Pokušaj ponovno."
   },
   "hostGallery": {
     "back": "Natrag",

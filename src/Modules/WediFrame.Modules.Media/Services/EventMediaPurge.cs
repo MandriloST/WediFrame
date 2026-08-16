@@ -1,34 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using WediFrame.Modules.Media.Domain;
+using WediFrame.Shared.Media;
 using WediFrame.Shared.Storage;
 
 namespace WediFrame.Modules.Media.Services;
 
 /// <summary>
-/// The Media module's public contract for PHYSICALLY erasing all of an event's
-/// media — R2 objects (originals, thumbnails, in-flight multiparts, export ZIPs)
-/// AND the database rows. Used by the Retention worker after the grace period
-/// (M4, Phase 2) and, later, by host-requested full-event deletion (Phase 3).
-///
-/// It deletes media only. The event's cover photo and status are Events' concern
-/// (the caller finalizes those via IEventRetention), which keeps this a clean,
-/// one-way dependency: Retention → Media, Media → Events (no back edge).
-///
-/// Idempotent: an R2 delete is a no-op on a missing key and the row delete is a
-/// filtered bulk delete, so re-running after a partial failure is safe — the
-/// caller only marks the event Deleted once purge has fully succeeded.
+/// Media-module implementation of <see cref="IEventMediaPurge"/> (contract in
+/// Shared). Deletes media only — the event's cover photo and status are Events'
+/// concern (the caller finalizes those via IEventRetention), which keeps this a
+/// clean one-way dependency: Media → Events (no back edge), and callers depend
+/// on the Shared port rather than on this module.
 /// </summary>
-public interface IEventMediaPurge
-{
-    Task<EventMediaPurgeResult> PurgeAsync(Guid eventId, CancellationToken ct = default);
-}
-
-/// <summary>Counts from one purge, for logging and the audit trail.</summary>
-public sealed record EventMediaPurgeResult(int MediaDeleted, int ExportsDeleted, int ObjectsDeleted)
-{
-    public static readonly EventMediaPurgeResult Empty = new(0, 0, 0);
-}
-
 public sealed class EventMediaPurge(DbContext db, IObjectStorage storage) : IEventMediaPurge
 {
     public async Task<EventMediaPurgeResult> PurgeAsync(Guid eventId, CancellationToken ct = default)

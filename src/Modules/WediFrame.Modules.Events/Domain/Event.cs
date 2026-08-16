@@ -44,6 +44,12 @@ public sealed class Event
     public EventStatus Status { get; set; } = EventStatus.Draft;
 
     /// <summary>
+    /// When the "your gallery expires soon" reminder was emailed to the host
+    /// (M4, Phase 4). Null = not yet sent; set once so the worker never re-emails.
+    /// </summary>
+    public DateTimeOffset? RetentionReminderSentAt { get; set; }
+
+    /// <summary>
     /// Long, unguessable, URL-safe token. The ONLY key guests need — printed as QR.
     /// Rotatable by the host if the link leaks (M5).
     /// </summary>

@@ -15,6 +15,7 @@ import {
   activateEvent,
   closeUpload,
   confirmCover,
+  deleteEvent,
   getEvent,
   getEventStats,
   getQrPng,
@@ -182,6 +183,8 @@ export default function EventDetailPage() {
               <UploadPeriodSection event={event} onUpdated={setEvent} />
             </>
           )}
+
+          <DeleteEventSection event={event} />
         </>
       )}
     </main>
@@ -190,6 +193,67 @@ export default function EventDetailPage() {
 
 const GB = 1024 ** 3;
 const MB = 1024 ** 2;
+
+function DeleteEventSection({ event }: { event: HostEvent }) {
+  const t = useTranslations("eventDetail");
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(false);
+    try {
+      await deleteEvent(event.id);
+      router.replace("/dashboard");
+    } catch {
+      setError(true);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-5 rounded-2xl border border-[#EAD7D2] bg-[#FCF6F4] p-5">
+      <h2 className="text-sm font-medium text-[#7C2D3E]">{t("dangerZone")}</h2>
+      <p className="mt-1 text-xs text-[#A8776E]">{t("deleteHint")}</p>
+
+      {!confirming ? (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="mt-3 w-full rounded-xl border border-[#B4432F] px-4 py-2.5 text-sm font-medium text-[#B4432F] transition active:scale-[0.99]"
+        >
+          {t("deleteEvent")}
+        </button>
+      ) : (
+        <div className="mt-3 rounded-xl border border-[#EAD7D2] bg-white p-3">
+          <p className="text-sm text-[#57534E]">{t("deleteConfirmBody")}</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="flex-1 rounded-xl border border-[#E7E0D8] px-4 py-2.5 text-sm font-medium text-[#57534E] transition active:scale-[0.99] disabled:opacity-60"
+            >
+              {t("deleteCancel")}
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              className="flex-1 rounded-xl bg-[#B4432F] px-4 py-2.5 text-sm font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
+            >
+              {busy ? t("deleting") : t("deleteConfirm")}
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-2 text-sm text-[#B4432F]">{t("deleteError")}</p>}
+    </section>
+  );
+}
 
 function formatBytes(bytes: number): string {
   if (bytes >= GB) return `${(bytes / GB).toFixed(bytes >= 10 * GB ? 0 : 1)} GB`;

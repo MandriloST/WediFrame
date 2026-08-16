@@ -20,8 +20,14 @@ public sealed record CheckoutStart(
 
 public sealed record CheckoutResult(Guid PurchaseId, string Url);
 
-/// <summary>What the caller (Events) needs to activate the event once paid.</summary>
-public sealed record CheckoutOutcome(Guid EventId, Guid PackageId);
+/// <summary>What the caller (Events) needs to activate the event once paid and
+/// to send the purchase confirmation email.</summary>
+public sealed record CheckoutOutcome(
+    Guid EventId,
+    Guid PackageId,
+    int AmountCents,
+    string Currency,
+    string? InvoiceNumber);
 
 /// <summary>
 /// Cross-module checkout PORT consumed by Events. Encapsulates the Purchase record,
@@ -100,7 +106,9 @@ public sealed class CheckoutService(
         // Idempotent: Stripe may deliver the same event more than once.
         if (purchase.Status == PurchaseStatus.Paid)
         {
-            return new CheckoutOutcome(purchase.EventId, purchase.PackageId);
+            return new CheckoutOutcome(
+                purchase.EventId, purchase.PackageId,
+                purchase.AmountCents, purchase.Currency, purchase.FiscalInvoiceNumber);
         }
 
         purchase.Status = PurchaseStatus.Paid;
@@ -132,6 +140,8 @@ public sealed class CheckoutService(
         }
 
         await db.SaveChangesAsync(ct);
-        return new CheckoutOutcome(purchase.EventId, purchase.PackageId);
+        return new CheckoutOutcome(
+            purchase.EventId, purchase.PackageId,
+            purchase.AmountCents, purchase.Currency, purchase.FiscalInvoiceNumber);
     }
 }

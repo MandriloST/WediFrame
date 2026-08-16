@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WediFrame.Modules.Identity.Domain;
 using WediFrame.Modules.Identity.Endpoints;
 using WediFrame.Modules.Identity.Services;
+using WediFrame.Shared.Directory;
 using WediFrame.Shared.Modules;
 
 namespace WediFrame.Modules.Identity;
@@ -29,6 +30,9 @@ public sealed class IdentityModule : IModule
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<ITokenService, TokenService>();
+
+        // Cross-module host contact lookup (email + language) for notifications.
+        services.AddScoped<IUserDirectory, UserDirectory>();
 
         return services;
     }

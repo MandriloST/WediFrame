@@ -10,6 +10,8 @@ using WediFrame.Modules.Events.Contracts;
 using WediFrame.Modules.Events.Domain;
 using WediFrame.Modules.Events.Services;
 using WediFrame.Shared.Auth;
+using WediFrame.Shared.Directory;
+using WediFrame.Shared.Email;
 using WediFrame.Shared.Options;
 
 namespace WediFrame.Modules.Events.Endpoints;
@@ -94,6 +96,9 @@ public static class CheckoutEndpoints
         DbContext db,
         IPackageCatalog packages,
         ICheckoutService checkout,
+        IUserDirectory users,
+        IEmailSender email,
+        IOptions<FrontendOptions> frontend,
         ILoggerFactory loggerFactory,
         CancellationToken ct)
     {
@@ -134,13 +139,35 @@ public static class CheckoutEndpoints
         if (entity is not null && entity.Status == EventStatus.Draft)
         {
             entity.Status = EventStatus.Active;
-            if (await packages.GetByIdAsync(outcome.PackageId, ct) is { } package)
+            var package = await packages.GetByIdAsync(outcome.PackageId, ct);
+            if (package is { } p)
             {
-                entity.UploadEndsAt = entity.UploadStartDate.AddDays(package.UploadPeriodDays);
-                entity.ExpiresAt = entity.UploadStartDate.AddDays(package.RetentionDays);
+                entity.UploadEndsAt = entity.UploadStartDate.AddDays(p.UploadPeriodDays);
+                entity.ExpiresAt = entity.UploadStartDate.AddDays(p.RetentionDays);
             }
 
             await db.SaveChangesAsync(ct);
+
+            // Purchase confirmation email. Best-effort: a failure must not fail the
+            // webhook (Stripe would retry, but this block runs only on the
+            // Draft→Active transition, so the host still gets at most one email).
+            try
+            {
+                if (await users.GetContactAsync(entity.OwnerUserId, ct) is { } contact)
+                {
+                    var appBase = frontend.Value.AppBaseUrl.TrimEnd('/');
+                    var manageUrl = $"{appBase}/dashboard/events/{entity.Id}";
+                    var message = PurchaseConfirmationEmail.Build(
+                        contact.Language, contact.Email, entity.Title,
+                        package?.Name ?? "WediFrame", outcome.AmountCents, outcome.Currency,
+                        outcome.InvoiceNumber, manageUrl);
+                    await email.SendAsync(message, ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Purchase confirmation email failed for event {EventId}", entity.Id);
+            }
         }
 
         return Results.Ok();

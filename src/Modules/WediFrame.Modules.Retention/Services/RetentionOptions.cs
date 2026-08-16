@@ -25,6 +25,12 @@ public sealed class RetentionOptions
     /// </summary>
     public int GraceDays { get; set; } = 7;
 
+    /// <summary>
+    /// How many days before ExpiresAt the host gets the "gallery expires soon"
+    /// email. Sent once per event. 0 disables reminders.
+    /// </summary>
+    public int ReminderDaysBefore { get; set; } = 7;
+
     public TimeSpan InitialDelay => TimeSpan.FromSeconds(Math.Max(0, InitialDelaySeconds));
 
     public TimeSpan PollInterval => TimeSpan.FromSeconds(Math.Max(5, PollSeconds));
