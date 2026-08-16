@@ -1,7 +1,9 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WediFrame.Api.RateLimiting;
 using WediFrame.Infrastructure.Persistence;
 using WediFrame.Infrastructure.Storage;
 using WediFrame.Infrastructure.Imaging;
@@ -68,6 +70,21 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
+// Behind Railway's proxy the client IP arrives in X-Forwarded-For. Map it onto
+// RemoteIpAddress so rate limiting keys per real device, not the proxy. The
+// proxy IP is dynamic, so we trust the forwarded header (used only for throttle
+// keying + logging, never for auth decisions).
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
+// Per-IP rate limiting on public surfaces (auth brute-force, guest, upload).
+// Policies opt in per endpoint via .RequireRateLimiting(RateLimitPolicies.*).
+builder.Services.AddWediFrameRateLimiting(builder.Configuration);
+
 // --- Modules (explicit list — order matters only for readability) ------------
 IModule[] modules =
 [
@@ -91,12 +108,17 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// Must run before anything that reads the client IP (rate limiting) so
+// X-Forwarded-For is applied to RemoteIpAddress.
+app.UseForwardedHeaders();
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

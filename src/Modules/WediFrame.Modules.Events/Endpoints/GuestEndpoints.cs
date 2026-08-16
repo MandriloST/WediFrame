@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using WediFrame.Modules.Events.Contracts;
 using WediFrame.Modules.Events.Services;
+using WediFrame.Shared.RateLimiting;
 using WediFrame.Shared.Storage;
 
 namespace WediFrame.Modules.Events.Endpoints;
@@ -18,7 +19,7 @@ public static class GuestEndpoints
     public static IEndpointRouteBuilder MapGuestEndpoints(this IEndpointRouteBuilder endpoints)
     {
         // Deliberately outside RequireAuthorization — token IS the authorization.
-        endpoints.MapGet("/guest/{token}", GetEventInfoAsync);
+        endpoints.MapGet("/guest/{token}", GetEventInfoAsync).RequireRateLimiting(RateLimitPolicies.Guest);
 
         return endpoints;
     }

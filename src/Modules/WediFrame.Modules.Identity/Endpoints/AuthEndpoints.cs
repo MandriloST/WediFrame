@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using WediFrame.Modules.Identity.Contracts;
 using WediFrame.Modules.Identity.Domain;
 using WediFrame.Modules.Identity.Services;
+using WediFrame.Shared.RateLimiting;
 
 namespace WediFrame.Modules.Identity.Endpoints;
 
@@ -22,9 +23,9 @@ public static class AuthEndpoints
     {
         var group = endpoints.MapGroup("/auth");
 
-        group.MapPost("/register", RegisterAsync);
-        group.MapPost("/login", LoginAsync);
-        group.MapPost("/refresh", RefreshAsync);
+        group.MapPost("/register", RegisterAsync).RequireRateLimiting(RateLimitPolicies.Auth);
+        group.MapPost("/login", LoginAsync).RequireRateLimiting(RateLimitPolicies.Auth);
+        group.MapPost("/refresh", RefreshAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapGet("/me", MeAsync).RequireAuthorization();
 
         return endpoints;

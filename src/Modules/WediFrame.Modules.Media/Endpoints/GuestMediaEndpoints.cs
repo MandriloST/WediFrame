@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WediFrame.Modules.Events.Services;
 using WediFrame.Modules.Media.Contracts;
 using WediFrame.Modules.Media.Domain;
+using WediFrame.Shared.RateLimiting;
 using WediFrame.Shared.Storage;
 
 namespace WediFrame.Modules.Media.Endpoints;
@@ -30,15 +31,15 @@ public static class GuestMediaEndpoints
     public static IEndpointRouteBuilder MapGuestMediaEndpoints(this IEndpointRouteBuilder endpoints)
     {
         // Deliberately outside RequireAuthorization — token IS the authorization.
-        endpoints.MapPost("/guest/{token}/uploads", StartUploadsAsync);
-        endpoints.MapPost("/guest/{token}/uploads/{mediaId:guid}/confirm", ConfirmUploadAsync);
-        endpoints.MapGet("/guest/{token}/media", ListMediaAsync);
-        endpoints.MapGet("/guest/{token}/media/{mediaId:guid}/download", DownloadMediaAsync);
+        endpoints.MapPost("/guest/{token}/uploads", StartUploadsAsync).RequireRateLimiting(RateLimitPolicies.Upload);
+        endpoints.MapPost("/guest/{token}/uploads/{mediaId:guid}/confirm", ConfirmUploadAsync).RequireRateLimiting(RateLimitPolicies.Upload);
+        endpoints.MapGet("/guest/{token}/media", ListMediaAsync).RequireRateLimiting(RateLimitPolicies.Guest);
+        endpoints.MapGet("/guest/{token}/media/{mediaId:guid}/download", DownloadMediaAsync).RequireRateLimiting(RateLimitPolicies.Guest);
 
         // Video: multipart directly browser → R2.
-        endpoints.MapPost("/guest/{token}/videos", InitVideoUploadAsync);
-        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/complete", CompleteVideoUploadAsync);
-        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/abort", AbortVideoUploadAsync);
+        endpoints.MapPost("/guest/{token}/videos", InitVideoUploadAsync).RequireRateLimiting(RateLimitPolicies.Upload);
+        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/complete", CompleteVideoUploadAsync).RequireRateLimiting(RateLimitPolicies.Upload);
+        endpoints.MapPost("/guest/{token}/videos/{mediaId:guid}/abort", AbortVideoUploadAsync).RequireRateLimiting(RateLimitPolicies.Upload);
 
         return endpoints;
     }
