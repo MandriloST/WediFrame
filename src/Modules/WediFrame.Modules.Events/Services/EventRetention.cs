@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WediFrame.Modules.Events.Domain;
 using WediFrame.Shared.Audit;
+using WediFrame.Shared.Storage;
 
 namespace WediFrame.Modules.Events.Services;
 
@@ -12,12 +13,17 @@ namespace WediFrame.Modules.Events.Services;
 /// entity — so status rules stay in one place and Retention only references
 /// Events (one-way, no cycle; ARCHITECTURE.md §2).
 ///
-/// Phase 1 (this): time-based status flips only, NO physical deletion.
+/// Phase 1: time-based status flips, NO deletion.
 ///   Active                 → UploadClosed   when today &gt; UploadEndsAt
 ///   Active / UploadClosed  → Expired        when today &gt; ExpiresAt
 /// Guest access already treats anything other than Active/UploadClosed as
-/// unavailable, so Expired means the gallery is no longer reachable. Grace
-/// period + hard-delete of R2 media arrive in Phase 2.
+/// unavailable, so Expired means the gallery is no longer reachable.
+///
+/// Phase 2: after a grace period past ExpiresAt, the event's media is physically
+/// erased and the event moves to Deleted. The media purge itself lives in the
+/// Media module (IEventMediaPurge); this module only finds due events and
+/// finalizes the event (delete cover, flip status, audit). The Retention worker
+/// orchestrates the two — that keeps Events free of a dependency on Media.
 /// </summary>
 public interface IEventRetention
 {
@@ -28,6 +34,22 @@ public interface IEventRetention
     /// state, for logging.
     /// </summary>
     Task<RetentionSweepResult> SweepAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Ids of Expired events whose grace period has fully elapsed
+    /// (today &gt; ExpiresAt + <paramref name="graceDays"/>), i.e. ready for
+    /// physical erasure. The caller purges each event's media, then calls
+    /// <see cref="FinalizeDeletionAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> FindDueForPurgeAsync(int graceDays, CancellationToken ct = default);
+
+    /// <summary>
+    /// Finalize a hard-delete: remove the cover photo from R2, flip the event to
+    /// Deleted, and audit it. Call this ONLY after the event's media has been
+    /// purged. Idempotent — an already-Deleted or missing event is a no-op. The
+    /// media/export counts are recorded in the audit entry for the erasure trail.
+    /// </summary>
+    Task FinalizeDeletionAsync(Guid eventId, int mediaDeleted, int exportsDeleted, CancellationToken ct = default);
 }
 
 /// <summary>Counts from one retention sweep.</summary>
@@ -38,7 +60,7 @@ public sealed record RetentionSweepResult(int UploadClosed, int Expired)
     public static readonly RetentionSweepResult Empty = new(0, 0);
 }
 
-public sealed class EventRetention(DbContext db, TimeProvider timeProvider) : IEventRetention
+public sealed class EventRetention(DbContext db, TimeProvider timeProvider, IObjectStorage storage) : IEventRetention
 {
     /// <summary>
     /// Max events mutated per sweep — bounds one transaction. Volumes are tiny;
@@ -128,5 +150,64 @@ public sealed class EventRetention(DbContext db, TimeProvider timeProvider) : IE
 
         await db.SaveChangesAsync(ct);
         return new RetentionSweepResult(uploadClosed, expired);
+    }
+
+    public async Task<IReadOnlyList<Guid>> FindDueForPurgeAsync(int graceDays, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+
+        // today > ExpiresAt + graceDays  ⟺  ExpiresAt < today - graceDays.
+        // Comparing plain dates keeps the query trivially translatable (Npgsql
+        // does not translate DateOnly.AddDays), and it means "extend retention"
+        // (M5) automatically postpones the purge by moving ExpiresAt.
+        var cutoff = today.AddDays(-Math.Max(0, graceDays));
+
+        return await db.Set<Event>()
+            .Where(e => e.Status == EventStatus.Expired
+                && e.ExpiresAt != null
+                && e.ExpiresAt < cutoff)
+            .OrderBy(e => e.ExpiresAt)
+            .Take(BatchSize)
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+    }
+
+    public async Task FinalizeDeletionAsync(
+        Guid eventId, int mediaDeleted, int exportsDeleted, CancellationToken ct = default)
+    {
+        var e = await db.Set<Event>().SingleOrDefaultAsync(x => x.Id == eventId, ct);
+
+        // Idempotent: nothing to do if it's gone or already finalized.
+        if (e is null || e.Status == EventStatus.Deleted)
+        {
+            return;
+        }
+
+        // The cover photo is the one media object Events owns directly.
+        if (e.CoverPhotoKey is { Length: > 0 } coverKey)
+        {
+            await storage.DeleteAsync(coverKey, ct);
+            e.CoverPhotoKey = null;
+        }
+
+        e.Status = EventStatus.Deleted;
+
+        db.Set<AuditLogEntry>().Add(new AuditLogEntry
+        {
+            Id = Guid.NewGuid(),
+            OccurredAt = timeProvider.GetUtcNow(),
+            ActorUserId = null, // system / background job
+            Action = "event.purged",
+            EntityType = nameof(Event),
+            EntityId = e.Id.ToString(),
+            Details = JsonSerializer.Serialize(new
+            {
+                reason = "retention_grace",
+                mediaDeleted,
+                exportsDeleted,
+            }),
+        });
+
+        await db.SaveChangesAsync(ct);
     }
 }

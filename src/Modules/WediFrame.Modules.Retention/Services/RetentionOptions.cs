@@ -19,6 +19,12 @@ public sealed class RetentionOptions
     /// <summary>Seconds between sweeps. Day-granular flips → hourly (3600 s) is ample.</summary>
     public int PollSeconds { get; set; } = 3600;
 
+    /// <summary>
+    /// Days an Expired event's media is kept (recoverable) before physical
+    /// deletion. Purge fires when today &gt; ExpiresAt + GraceDays. PROJECT.md: ~7.
+    /// </summary>
+    public int GraceDays { get; set; } = 7;
+
     public TimeSpan InitialDelay => TimeSpan.FromSeconds(Math.Max(0, InitialDelaySeconds));
 
     public TimeSpan PollInterval => TimeSpan.FromSeconds(Math.Max(5, PollSeconds));

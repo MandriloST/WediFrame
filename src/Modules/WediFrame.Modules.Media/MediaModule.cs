@@ -32,6 +32,10 @@ public sealed class MediaModule : IModule
         // Background gallery ZIP export (depends on IObjectStorage).
         services.AddHostedService<ExportWorker>();
 
+        // Physical erasure of an event's media (R2 + rows). Consumed by the
+        // Retention worker after grace (M4, Phase 2) and by host delete (Phase 3).
+        services.AddScoped<IEventMediaPurge, EventMediaPurge>();
+
         return services;
     }
 
