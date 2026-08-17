@@ -14,6 +14,13 @@ public interface IAdminEventDirectory
 
     /// <summary>Single event with a bit more detail (guest token/URL), or null.</summary>
     Task<AdminEventDetail?> GetAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Count of events grouped by status name (Draft/Active/…), for the overview.</summary>
+    Task<IReadOnlyDictionary<string, int>> GetStatusCountsAsync(CancellationToken ct);
+
+    /// <summary>Resolve titles for a set of event ids (storage report enrichment).</summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetTitlesAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken ct);
 }
 
 /// <summary>Filter/paging input.</summary>

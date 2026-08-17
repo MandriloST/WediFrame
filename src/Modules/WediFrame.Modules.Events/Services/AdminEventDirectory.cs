@@ -86,6 +86,33 @@ public sealed class AdminEventDirectory(
             e.CreatedAt);
     }
 
+    public async Task<IReadOnlyDictionary<string, int>> GetStatusCountsAsync(CancellationToken ct)
+    {
+        var grouped = await db.Set<Event>()
+            .GroupBy(e => e.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return grouped.ToDictionary(x => x.Status.ToString(), x => x.Count);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetTitlesAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken ct)
+    {
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var idSet = ids.Distinct().ToArray();
+        var rows = await db.Set<Event>()
+            .Where(e => idSet.Contains(e.Id))
+            .Select(e => new { e.Id, e.Title })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(x => x.Id, x => x.Title);
+    }
+
     private async Task<Dictionary<Guid, PackageInfo>> ResolvePackagesAsync(
         IEnumerable<Guid?> packageIds, CancellationToken ct)
     {

@@ -419,6 +419,22 @@
       "deleting": "Brisanje…",
       "cancel": "Odustani",
       "actionError": "Radnja nije uspjela. Pokušaj ponovno."
+    },
+    "overview": {
+      "loading": "Učitavanje…",
+      "error": "Pregled nije moguće dohvatiti.",
+      "users": "Korisnici",
+      "events": "Eventi",
+      "storage": "Pohrana",
+      "mediaItems": "Medijskih datoteka",
+      "photoVideo": "{photos} fotki · {videos} videa",
+      "eventsByStatus": "Eventi po statusu",
+      "topEvents": "Najveći eventi po pohrani",
+      "topEventsHint": "Zbroj potvrđenih (ne-obrisanih) datoteka po eventu.",
+      "noStorage": "Još nema pohranjenih datoteka.",
+      "colEvent": "Event",
+      "colItems": "Datoteka",
+      "colSize": "Veličina"
     }
   }
 }

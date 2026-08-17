@@ -43,6 +43,7 @@ public sealed class AdminModule : IModule
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/admin").RequireAuthorization(AdminPolicy.Name);
+        group.MapAdminOverviewEndpoints();
         group.MapAdminAuditEndpoints();
         group.MapAdminUserEndpoints();
         group.MapAdminEventEndpoints();

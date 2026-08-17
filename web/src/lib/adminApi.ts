@@ -221,3 +221,30 @@ export async function deleteAdminMedia(
   });
   if (!res.ok) throw new ApiError(res.status, null);
 }
+
+// --- overview / storage report (A4) ------------------------------------------
+
+export type AdminStorageEvent = {
+  eventId: string;
+  title: string | null;
+  bytes: number;
+  itemCount: number;
+};
+
+export type AdminOverview = {
+  users: { total: number };
+  events: { total: number; byStatus: Record<string, number> };
+  storage: {
+    totalBytes: number;
+    itemCount: number;
+    photoCount: number;
+    videoCount: number;
+    topEvents: AdminStorageEvent[];
+  };
+};
+
+export async function getOverview(): Promise<AdminOverview> {
+  const res = await authFetch(`/admin/overview`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as AdminOverview;
+}

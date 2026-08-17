@@ -419,6 +419,22 @@
       "deleting": "Deleting…",
       "cancel": "Cancel",
       "actionError": "That didn't work. Please try again."
+    },
+    "overview": {
+      "loading": "Loading…",
+      "error": "Could not load the overview.",
+      "users": "Users",
+      "events": "Events",
+      "storage": "Storage",
+      "mediaItems": "Media items",
+      "photoVideo": "{photos} photos · {videos} videos",
+      "eventsByStatus": "Events by status",
+      "topEvents": "Largest events by storage",
+      "topEventsHint": "Sum of confirmed (non-deleted) files per event.",
+      "noStorage": "No stored files yet.",
+      "colEvent": "Event",
+      "colItems": "Files",
+      "colSize": "Size"
     }
   }
 }

@@ -40,6 +40,9 @@ public sealed class MediaModule : IModule
         // Admin moderation over any event's media (Admin module, A3b), via Shared port.
         services.AddScoped<WediFrame.Shared.Admin.IAdminMedia, AdminMedia>();
 
+        // Admin storage aggregates for the overview / storage report (A4), via Shared port.
+        services.AddScoped<WediFrame.Shared.Admin.IAdminStorage, AdminStorage>();
+
         return services;
     }
 

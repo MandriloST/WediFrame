@@ -55,6 +55,31 @@ public sealed record AdminEventDetailResponse(
 /// <summary>POST body for admin retention extension ("yyyy-MM-dd").</summary>
 public sealed record AdminExtendRetentionRequest(string? ExpiresAt);
 
+/// <summary>Admin dashboard aggregates.</summary>
+public sealed record AdminOverviewResponse(
+    AdminOverviewUsers Users,
+    AdminOverviewEvents Events,
+    AdminOverviewStorage Storage);
+
+public sealed record AdminOverviewUsers(int Total);
+
+/// <summary>Event totals plus a status-name → count map (Draft/Active/…).</summary>
+public sealed record AdminOverviewEvents(int Total, IReadOnlyDictionary<string, int> ByStatus);
+
+public sealed record AdminOverviewStorage(
+    long TotalBytes,
+    int ItemCount,
+    int PhotoCount,
+    int VideoCount,
+    IReadOnlyList<AdminStorageEventResponse> TopEvents);
+
+/// <summary>One row of the storage report (title null if the event vanished).</summary>
+public sealed record AdminStorageEventResponse(
+    Guid EventId,
+    string? Title,
+    long Bytes,
+    int ItemCount);
+
 /// <summary>New event state after a successful retention extension.</summary>
 public sealed record AdminRetentionResponse(DateOnly ExpiresAt, string Status);
 
