@@ -3,6 +3,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "../globals.css";
 
 // NOTE: no webfont yet on purpose — typography is a design decision that lands
@@ -28,6 +29,14 @@ export async function generateMetadata({
     description: t("description"),
     applicationName: "WediFrame",
     manifest: "/manifest.webmanifest",
+    icons: {
+      icon: [
+        { url: "/icons/favicon.svg", type: "image/svg+xml" },
+        { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    },
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
@@ -37,7 +46,7 @@ export async function generateMetadata({
 }
 
 export const viewport: Viewport = {
-  themeColor: "#faf9f7",
+  themeColor: "#7C2D3E",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -61,6 +70,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
+        <ServiceWorkerRegister />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

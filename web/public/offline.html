@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>WediFrame — offline</title>
+<link rel="icon" href="/icons/favicon.svg" />
+<style>
+  :root { --bordo:#7C2D3E; --cream:#FFFDF9; --ink:#1C1917; --muted:#57534E; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; }
+  body {
+    background: var(--cream); color: var(--ink);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
+  }
+  .card { max-width: 420px; }
+  .logo {
+    width:64px; height:64px; border-radius:16px; background:var(--bordo);
+    color:var(--cream); display:flex; align-items:center; justify-content:center;
+    font-family: Georgia, "Times New Roman", serif; font-weight:700; font-size:38px;
+    margin:0 auto 20px;
+  }
+  h1 { font-size:22px; margin:0 0 8px; }
+  p { color:var(--muted); margin:4px 0; line-height:1.5; }
+  .en { color:#A8A29E; font-size:14px; margin-top:10px; }
+  button {
+    margin-top:20px; border:1px solid var(--bordo); background:transparent; color:var(--bordo);
+    border-radius:12px; padding:10px 20px; font-size:15px; font-weight:600; cursor:pointer;
+  }
+  button:hover { background:var(--bordo); color:var(--cream); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">W</div>
+    <h1>Trenutno ste offline</h1>
+    <p>Provjerite internetsku vezu pa pokušajte ponovno. Vaše fotografije se nastavljaju slati čim se veza vrati.</p>
+    <p class="en">You're offline. Check your connection and try again — uploads resume automatically once you're back online.</p>
+    <button onclick="location.reload()">Pokušaj ponovno · Retry</button>
+  </div>
+</body>
+</html>
