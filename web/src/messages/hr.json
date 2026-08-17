@@ -373,8 +373,10 @@
         "guestLink": "Gostovski link",
         "openGuest": "Otvori gostovsku stranicu",
         "guestLinkHint": "Ovaj link daje puni pristup galeriji — koristi ga samo za podršku.",
-        "moderationSoon": "Moderacija (skrivanje/brisanje medija, produljenje retencije) stiže u sljedećem koraku.",
-        "error": "Event nije moguće dohvatiti."
+        "error": "Event nije moguće dohvatiti.",
+        "moderation": "Moderacija",
+        "moderationHint": "Pregledaj galeriju eventa te sakrij ili obriši neprikladan sadržaj.",
+        "moderateGallery": "Moderiraj galeriju"
       },
       "empty": "Nema evenata za odabrane filtere.",
       "error": "Evente nije moguće dohvatiti.",
@@ -383,6 +385,28 @@
       "next": "Sljedeća",
       "pageOf": "Stranica {page} od {pages}",
       "totalCount": "{total} evenata"
+    },
+    "gallery": {
+      "title": "Moderacija galerije",
+      "back": "Natrag na event",
+      "count": "{count, plural, one {# stavka} few {# stavke} other {# stavki}}",
+      "hiddenHint": "Skrivene stavke ne vide gosti; ovdje ostaju vidljive i mogu se vratiti.",
+      "empty": "Ovaj event još nema medija.",
+      "loadError": "Učitavanje nije uspjelo.",
+      "retry": "Pokušaj ponovno",
+      "loadMore": "Učitaj još",
+      "close": "Zatvori",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
+      "unsupported": "Pregled nije podržan",
+      "download": "Preuzmi",
+      "hide": "Sakrij",
+      "unhide": "Prikaži",
+      "delete": "Obriši",
+      "confirmDelete": "Potvrdi brisanje",
+      "deleting": "Brisanje…",
+      "cancel": "Odustani",
+      "actionError": "Radnja nije uspjela. Pokušaj ponovno."
     }
   }
 }

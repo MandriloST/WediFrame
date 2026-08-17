@@ -373,8 +373,10 @@
         "guestLink": "Guest link",
         "openGuest": "Open guest page",
         "guestLinkHint": "This link grants full gallery access — use it only for support.",
-        "moderationSoon": "Moderation (hide/delete media, extend retention) is coming in the next step.",
-        "error": "Could not load the event."
+        "error": "Could not load the event.",
+        "moderation": "Moderation",
+        "moderationHint": "Review the event's gallery and hide or delete inappropriate content.",
+        "moderateGallery": "Moderate gallery"
       },
       "empty": "No events for the selected filters.",
       "error": "Could not load events.",
@@ -383,6 +385,28 @@
       "next": "Next",
       "pageOf": "Page {page} of {pages}",
       "totalCount": "{total} events"
+    },
+    "gallery": {
+      "title": "Gallery moderation",
+      "back": "Back to event",
+      "count": "{count, plural, one {# item} other {# items}}",
+      "hiddenHint": "Hidden items are invisible to guests; here they remain visible and can be restored.",
+      "empty": "This event has no media yet.",
+      "loadError": "Failed to load.",
+      "retry": "Try again",
+      "loadMore": "Load more",
+      "close": "Close",
+      "prev": "Previous",
+      "next": "Next",
+      "unsupported": "Preview not supported",
+      "download": "Download",
+      "hide": "Hide",
+      "unhide": "Show",
+      "delete": "Delete",
+      "confirmDelete": "Confirm delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "actionError": "That didn't work. Please try again."
     }
   }
 }

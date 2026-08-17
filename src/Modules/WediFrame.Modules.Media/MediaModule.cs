@@ -37,6 +37,9 @@ public sealed class MediaModule : IModule
         // Retention worker after grace (M4, Phase 2) and by host delete (Phase 3).
         services.AddScoped<IEventMediaPurge, EventMediaPurge>();
 
+        // Admin moderation over any event's media (Admin module, A3b), via Shared port.
+        services.AddScoped<WediFrame.Shared.Admin.IAdminMedia, AdminMedia>();
+
         return services;
     }
 

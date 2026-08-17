@@ -52,6 +52,9 @@ public sealed record AdminEventDetailResponse(
     string GuestUrl,
     DateTimeOffset CreatedAt);
 
+/// <summary>PATCH body for admin media visibility toggle ("Visible" | "Hidden").</summary>
+public sealed record AdminSetVisibilityRequest(string? Visibility);
+
 /// <summary>Generic paged envelope for admin list endpoints.</summary>
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Items,

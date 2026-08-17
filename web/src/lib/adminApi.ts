@@ -135,3 +135,60 @@ export async function getEvent(id: string): Promise<AdminEventDetail> {
   if (!res.ok) throw new ApiError(res.status, null);
   return (await res.json()) as AdminEventDetail;
 }
+
+// --- media moderation (A3b) --------------------------------------------------
+
+export type AdminMediaItem = {
+  mediaId: string;
+  type: string; // "Photo" | "Video"
+  url: string;
+  thumbnailUrl: string | null;
+  contentType: string;
+  guestName: string | null;
+  visibility: string; // "Visible" | "Hidden"
+  sizeBytes: number;
+  createdAt: string;
+};
+
+export type AdminMediaPage = {
+  items: AdminMediaItem[];
+  nextOffset: number | null;
+};
+
+export const ADMIN_MEDIA_PAGE_SIZE = 24;
+
+export async function getAdminMedia(
+  eventId: string,
+  offset = 0,
+  limit = ADMIN_MEDIA_PAGE_SIZE,
+): Promise<AdminMediaPage> {
+  const res = await authFetch(
+    `/admin/events/${eventId}/media?offset=${offset}&limit=${limit}`,
+  );
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as AdminMediaPage;
+}
+
+export async function setAdminMediaVisibility(
+  eventId: string,
+  mediaId: string,
+  visibility: "Visible" | "Hidden",
+): Promise<{ mediaId: string; visibility: string }> {
+  const res = await authFetch(`/admin/events/${eventId}/media/${mediaId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ visibility }),
+  });
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as { mediaId: string; visibility: string };
+}
+
+export async function deleteAdminMedia(
+  eventId: string,
+  mediaId: string,
+): Promise<void> {
+  const res = await authFetch(`/admin/events/${eventId}/media/${mediaId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new ApiError(res.status, null);
+}

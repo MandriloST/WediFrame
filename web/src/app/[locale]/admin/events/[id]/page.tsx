@@ -118,9 +118,20 @@ export default function AdminEventDetailPage() {
             </p>
           </div>
 
-          <p className="rounded-xl border border-dashed border-stone-200 bg-white/60 px-4 py-3 text-sm text-stone-500">
-            {t("detail.moderationSoon")}
-          </p>
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold text-stone-900">
+              {t("detail.moderation")}
+            </h2>
+            <p className="mt-1 text-sm text-stone-500">
+              {t("detail.moderationHint")}
+            </p>
+            <Link
+              href={`/admin/events/${event.id}/gallery`}
+              className="mt-3 inline-block rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700"
+            >
+              {t("detail.moderateGallery")}
+            </Link>
+          </div>
         </>
       )}
     </div>
