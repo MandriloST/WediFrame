@@ -384,7 +384,19 @@
       "prev": "Previous",
       "next": "Next",
       "pageOf": "Page {page} of {pages}",
-      "totalCount": "{total} events"
+      "totalCount": "{total} events",
+      "retention": {
+        "title": "Extend retention",
+        "hint": "Move the date the gallery stays available. Forward only. If the event has expired, it becomes reachable again (uploads stay closed).",
+        "newDate": "New expiry date",
+        "extend": "Extend",
+        "saving": "Saving…",
+        "done": "Retention extended.",
+        "error": "Could not extend retention.",
+        "errorNotLater": "The new date must be in the future and later than the current expiry.",
+        "errorNotActivated": "Event isn't activated or is deleted — retention can't be changed.",
+        "errorDateInvalid": "Invalid date."
+      }
     },
     "gallery": {
       "title": "Gallery moderation",

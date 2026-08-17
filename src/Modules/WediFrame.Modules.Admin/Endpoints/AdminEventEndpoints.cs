@@ -1,8 +1,11 @@
+using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using WediFrame.Modules.Admin.Contracts;
 using WediFrame.Shared.Admin;
+using WediFrame.Shared.Auth;
 using WediFrame.Shared.Directory;
 
 namespace WediFrame.Modules.Admin.Endpoints;
@@ -23,6 +26,7 @@ public static class AdminEventEndpoints
     {
         endpoints.MapGet("/events", GetEventsAsync);
         endpoints.MapGet("/events/{id:guid}", GetEventAsync);
+        endpoints.MapPost("/events/{id:guid}/extend-retention", ExtendRetentionAsync);
         return endpoints;
     }
 
@@ -78,5 +82,51 @@ public static class AdminEventEndpoints
             e.PackageSlug, e.PackageName,
             e.UploadStartDate, e.UploadEndsAt, e.ExpiresAt,
             e.HasCover, e.GuestToken, e.GuestUrl, e.CreatedAt));
+    }
+
+    private static async Task<IResult> ExtendRetentionAsync(
+        Guid id,
+        AdminExtendRetentionRequest request,
+        ClaimsPrincipal principal,
+        IAdminEventModeration moderation,
+        CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } adminUserId)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!DateOnly.TryParseExact(
+                (request.ExpiresAt ?? "").Trim(),
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var newExpiresAt))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["expiresAt"] = ["events.retention_date_invalid"],
+            });
+        }
+
+        var result = await moderation.ExtendRetentionAsync(id, newExpiresAt, adminUserId, ct);
+
+        return result.Outcome switch
+        {
+            AdminRetentionOutcome.Ok =>
+                Results.Ok(new AdminRetentionResponse(result.ExpiresAt!.Value, result.Status!)),
+            AdminRetentionOutcome.NotFound =>
+                Results.NotFound(),
+            AdminRetentionOutcome.NotActivated =>
+                Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["expiresAt"] = ["events.retention_not_activated"],
+                }),
+            _ =>
+                Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["expiresAt"] = ["events.retention_not_later"],
+                }),
+        };
     }
 }

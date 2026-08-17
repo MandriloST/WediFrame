@@ -384,7 +384,19 @@
       "prev": "Prethodna",
       "next": "Sljedeća",
       "pageOf": "Stranica {page} od {pages}",
-      "totalCount": "{total} evenata"
+      "totalCount": "{total} evenata",
+      "retention": {
+        "title": "Produljenje retencije",
+        "hint": "Pomakni datum do kojeg galerija živi. Može samo unaprijed. Ako je event istekao, ponovno postaje dostupan (upload ostaje zatvoren).",
+        "newDate": "Novi datum isteka",
+        "extend": "Produlji",
+        "saving": "Spremanje…",
+        "done": "Retencija je produljena.",
+        "error": "Produljenje nije uspjelo.",
+        "errorNotLater": "Novi datum mora biti u budućnosti i kasniji od trenutnog isteka.",
+        "errorNotActivated": "Event nije aktiviran ili je obrisan — retencija se ne može mijenjati.",
+        "errorDateInvalid": "Neispravan datum."
+      }
     },
     "gallery": {
       "title": "Moderacija galerije",

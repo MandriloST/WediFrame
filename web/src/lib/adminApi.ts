@@ -136,6 +136,35 @@ export async function getEvent(id: string): Promise<AdminEventDetail> {
   return (await res.json()) as AdminEventDetail;
 }
 
+/** Best-effort extraction of a machine error code from a ProblemDetails body. */
+async function parseProblemCode(res: Response): Promise<string | null> {
+  try {
+    const body = await res.json();
+    if (body?.errors && typeof body.errors === "object") {
+      const first = Object.values(body.errors)[0];
+      if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+    }
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {
+    // no JSON body
+  }
+  return null;
+}
+
+/** Extend an event's gallery retention (move ExpiresAt later). Returns new state. */
+export async function extendRetention(
+  id: string,
+  expiresAt: string, // yyyy-MM-dd
+): Promise<{ expiresAt: string; status: string }> {
+  const res = await authFetch(`/admin/events/${id}/extend-retention`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresAt }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseProblemCode(res));
+  return (await res.json()) as { expiresAt: string; status: string };
+}
+
 // --- media moderation (A3b) --------------------------------------------------
 
 export type AdminMediaItem = {

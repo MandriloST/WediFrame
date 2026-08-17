@@ -52,6 +52,12 @@ public sealed record AdminEventDetailResponse(
     string GuestUrl,
     DateTimeOffset CreatedAt);
 
+/// <summary>POST body for admin retention extension ("yyyy-MM-dd").</summary>
+public sealed record AdminExtendRetentionRequest(string? ExpiresAt);
+
+/// <summary>New event state after a successful retention extension.</summary>
+public sealed record AdminRetentionResponse(DateOnly ExpiresAt, string Status);
+
 /// <summary>PATCH body for admin media visibility toggle ("Visible" | "Hidden").</summary>
 public sealed record AdminSetVisibilityRequest(string? Visibility);
 

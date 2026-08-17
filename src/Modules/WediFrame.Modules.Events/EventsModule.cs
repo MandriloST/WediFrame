@@ -37,6 +37,9 @@ public sealed class EventsModule : IModule
         // Read-only admin view over all events (Admin module, A3), via Shared port.
         services.AddScoped<WediFrame.Shared.Admin.IAdminEventDirectory, AdminEventDirectory>();
 
+        // Admin write-actions (retention extension, A3c), via Shared port.
+        services.AddScoped<WediFrame.Shared.Admin.IAdminEventModeration, AdminEventModeration>();
+
         return services;
     }
 
