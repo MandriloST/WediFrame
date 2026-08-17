@@ -14,7 +14,60 @@
       "two": "Gosti skeniraju i uploadaju slike i video",
       "three": "Sve uspomene u privatnoj galeriji"
     },
-    "cta": "Pogledajte pakete"
+    "cta": "Pogledajte pakete",
+    "nav": {
+      "pricing": "Cijene",
+      "login": "Prijava",
+      "createEvent": "Kreiraj event"
+    },
+    "hero": {
+      "title": "Sve fotografije i videa s vašeg vjenčanja — na jednom mjestu.",
+      "subtitle": "Gosti skeniraju QR kod i uploadaju uspomene. Bez aplikacije, bez registracije. Vi ih čuvate u privatnoj galeriji.",
+      "ctaPrimary": "Kreiraj event",
+      "ctaSecondary": "Pogledaj pakete",
+      "trust": "EU hosting · Bez treniranja AI-a · Automatsko brisanje nakon isteka"
+    },
+    "how": {
+      "title": "Kako radi",
+      "step1Title": "Kreirajte event",
+      "step1Desc": "Odaberite datum početka uploada i paket. Dobijete privatni link i QR kod.",
+      "step2Title": "Gosti skeniraju QR",
+      "step2Desc": "Otvara se u browseru — bez instalacije i registracije — i uploadaju slike i video.",
+      "step3Title": "Sve na jednom mjestu",
+      "step3Desc": "Svi gosti vide cijelu galeriju. Vi preuzmete sve uspomene kad želite."
+    },
+    "features": {
+      "title": "Zašto WediFrame",
+      "f1Title": "Bez aplikacije i računa",
+      "f1Desc": "Gost skenira QR i odmah uploada. Ništa za instalirati, ništa za registrirati.",
+      "f2Title": "QR za stolove i pozivnice",
+      "f2Desc": "Ispišite QR kod i stavite ga gostima na dohvat ruke.",
+      "f3Title": "Foto i video",
+      "f3Desc": "Prikupite fotografije i video snimke u punoj kvaliteti.",
+      "f4Title": "Svi vide sve",
+      "f4Desc": "Zajednička galerija — svaki gost vidi sve uspomene, ne samo svoje.",
+      "f5Title": "Privatno i sigurno",
+      "f5Desc": "Pohrana u EU. Pristup samo preko vašeg linka. Nema javnog dijeljenja.",
+      "f6Title": "Plaćate po eventu",
+      "f6Desc": "Jednokratno, bez pretplate. Besplatan paket za probu."
+    },
+    "privacy": {
+      "title": "Vaše uspomene su vaše",
+      "subtitle": "Ono što ne radimo s vašim sadržajem:",
+      "p1": "Ne treniramo AI na vašim fotografijama.",
+      "p2": "Ne prodajemo niti dijelimo podatke trećima.",
+      "p3": "Ne objavljujemo galeriju javno — pristup ima samo tko ima link."
+    },
+    "packagesCta": {
+      "title": "Jednostavni paketi",
+      "subtitle": "Od besplatnog probnog do velikih vjenčanja. Plaćate jednom, po eventu.",
+      "button": "Pogledaj sve pakete"
+    },
+    "finalCta": {
+      "title": "Spremni sačuvati svaki trenutak?",
+      "subtitle": "Kreirajte event u par minuta.",
+      "button": "Započni besplatno"
+    }
   },
   "meta": {
     "title": "WediFrame — fotke i videi s vjenčanja na jednom mjestu",

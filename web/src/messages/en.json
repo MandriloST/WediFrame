@@ -14,7 +14,60 @@
       "two": "Guests scan it and upload photos and videos",
       "three": "All memories in one private gallery"
     },
-    "cta": "See packages"
+    "cta": "See packages",
+    "nav": {
+      "pricing": "Pricing",
+      "login": "Log in",
+      "createEvent": "Create event"
+    },
+    "hero": {
+      "title": "Every photo and video from your wedding — in one place.",
+      "subtitle": "Guests scan a QR code and upload their memories. No app, no sign-up. You keep them all in a private gallery.",
+      "ctaPrimary": "Create event",
+      "ctaSecondary": "See packages",
+      "trust": "EU hosting · No AI training · Auto-deleted after retention"
+    },
+    "how": {
+      "title": "How it works",
+      "step1Title": "Create the event",
+      "step1Desc": "Pick the upload start date and a package. You get a private link and a QR code.",
+      "step2Title": "Guests scan the QR",
+      "step2Desc": "It opens in the browser — no install, no sign-up — and they upload photos and video.",
+      "step3Title": "All in one place",
+      "step3Desc": "Every guest sees the whole gallery. Download all your memories whenever you like."
+    },
+    "features": {
+      "title": "Why WediFrame",
+      "f1Title": "No app, no account",
+      "f1Desc": "Guests scan the QR and upload right away. Nothing to install, nothing to register.",
+      "f2Title": "QR for tables & invites",
+      "f2Desc": "Print the QR code and put it right in your guests' hands.",
+      "f3Title": "Photos & video",
+      "f3Desc": "Collect photos and video clips in full quality.",
+      "f4Title": "Everyone sees everything",
+      "f4Desc": "One shared gallery — each guest sees every memory, not just their own.",
+      "f5Title": "Private & secure",
+      "f5Desc": "Stored in the EU. Access only via your link. No public sharing.",
+      "f6Title": "Pay per event",
+      "f6Desc": "One-time, no subscription. Free package to try it out."
+    },
+    "privacy": {
+      "title": "Your memories are yours",
+      "subtitle": "What we never do with your content:",
+      "p1": "We don't train AI on your photos.",
+      "p2": "We don't sell or share your data with third parties.",
+      "p3": "We don't make the gallery public — only someone with the link gets in."
+    },
+    "packagesCta": {
+      "title": "Simple packages",
+      "subtitle": "From a free trial to big weddings. Pay once, per event.",
+      "button": "See all packages"
+    },
+    "finalCta": {
+      "title": "Ready to keep every moment?",
+      "subtitle": "Create your event in a couple of minutes.",
+      "button": "Start free"
+    }
   },
   "meta": {
     "title": "WediFrame — wedding photos and videos in one place",
