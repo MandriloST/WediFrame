@@ -16,7 +16,9 @@ public sealed record CheckoutStart(
     string? CompanyOib,
     string? CompanyAddress,
     string SuccessUrl,
-    string CancelUrl);
+    string CancelUrl,
+    Guid? BonusCodeId = null,
+    int DiscountCents = 0);
 
 public sealed record CheckoutResult(Guid PurchaseId, string Url);
 
@@ -46,6 +48,7 @@ public sealed class CheckoutService(
     DbContext db,
     IPaymentGateway payments,
     IFiscalizationService fiscalization,
+    WediFrame.Shared.Partners.IBonusCodeService bonusCodes,
     TimeProvider clock,
     ILogger<CheckoutService> logger) : ICheckoutService
 {
@@ -60,6 +63,8 @@ public sealed class CheckoutService(
             PackageId = r.PackageId,
             AmountCents = r.AmountCents,
             Currency = r.Currency,
+            BonusCodeId = r.BonusCodeId,
+            DiscountCents = r.DiscountCents,
             Status = PurchaseStatus.Pending,
             PaymentProvider = payments.Provider,
             NeedsR1 = r.NeedsR1,
@@ -114,6 +119,21 @@ public sealed class CheckoutService(
         purchase.Status = PurchaseStatus.Paid;
         purchase.PaymentReference = result.Reference;
         purchase.UpdatedAt = clock.GetUtcNow();
+
+        // Count the bonus-code redemption exactly once, on the Pending→Paid transition
+        // (repeated already-Paid webhooks returned above). Best-effort: a failure here
+        // must not block activation — the couple paid.
+        if (purchase.BonusCodeId is { } bonusCodeId)
+        {
+            try
+            {
+                await bonusCodes.RedeemAsync(bonusCodeId, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Bonus code redemption failed for purchase {PurchaseId}", purchase.Id);
+            }
+        }
 
         // Fiscalize (manual default / Parra when finalized). A failure is logged but
         // must NOT block activation — the couple paid; the invoice can be reissued.

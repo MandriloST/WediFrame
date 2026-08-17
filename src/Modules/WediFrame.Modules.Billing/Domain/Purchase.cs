@@ -41,6 +41,13 @@ public sealed class Purchase
 
     public string Currency { get; set; } = "EUR";
 
+    // ── Bonus code attribution (P2) ─────────────────────────────────────────
+    /// <summary>Redeemed bonus code (Partners.BonusCode.Id), or null. Plain Guid — no FK.</summary>
+    public Guid? BonusCodeId { get; set; }
+
+    /// <summary>Discount applied in minor units (cents). 0 when no code. AmountCents is post-discount.</summary>
+    public int DiscountCents { get; set; }
+
     public PurchaseStatus Status { get; set; } = PurchaseStatus.Pending;
 
     // ── Payment (gateway-agnostic) ──────────────────────────────────────────

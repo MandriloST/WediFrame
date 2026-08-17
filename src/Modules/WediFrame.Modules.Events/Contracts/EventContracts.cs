@@ -58,7 +58,24 @@ public sealed record CheckoutRequest(
     bool NeedsR1,
     string? CompanyName,
     string? CompanyOib,
-    string? CompanyAddress);
+    string? CompanyAddress,
+    string? BonusCode);
+
+/// <summary>Body for the bonus-code preview (before redirecting to payment).</summary>
+public sealed record BonusCodePreviewRequest(string? Code);
+
+/// <summary>
+/// Bonus-code preview result. When <see cref="Valid"/>, the amounts show the discount
+/// applied to this event's package; otherwise <see cref="Reason"/> carries an error code.
+/// </summary>
+public sealed record BonusCodePreviewResponse(
+    bool Valid,
+    string? Reason,
+    int OriginalCents,
+    int DiscountCents,
+    int FinalCents,
+    int ApproxPercent,
+    string Currency);
 
 /// <summary>Checkout response: the hosted payment URL to redirect the host to.</summary>
 public sealed record CheckoutResponse(string Url);

@@ -13,6 +13,7 @@ using WediFrame.Shared.Auth;
 using WediFrame.Shared.Directory;
 using WediFrame.Shared.Email;
 using WediFrame.Shared.Options;
+using WediFrame.Shared.Partners;
 
 namespace WediFrame.Modules.Events.Endpoints;
 
@@ -25,9 +26,14 @@ namespace WediFrame.Modules.Events.Endpoints;
 /// </summary>
 public static class CheckoutEndpoints
 {
+    /// <summary>Stripe won't create a session below its minimum (~€0.50); a bonus
+    /// code may not drop the charge below this. Reject with a clear code instead.</summary>
+    private const int MinChargeCents = 50;
+
     public static IEndpointRouteBuilder MapCheckoutEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost("/events/{id:guid}/checkout", StartCheckoutAsync).RequireAuthorization();
+        endpoints.MapPost("/events/{id:guid}/bonus-code/preview", PreviewBonusCodeAsync).RequireAuthorization();
         endpoints.MapPost("/webhooks/stripe", StripeWebhookAsync); // public; verified by signature
         return endpoints;
     }
@@ -38,6 +44,7 @@ public static class CheckoutEndpoints
         ClaimsPrincipal principal,
         IHostEventAccess hostEvents,
         IPackageCatalog packages,
+        IBonusCodeService bonusCodes,
         ICheckoutService checkout,
         IOptions<FrontendOptions> frontend,
         CancellationToken ct)
@@ -77,19 +84,117 @@ public static class CheckoutEndpoints
             });
         }
 
+        // Optional bonus code: validate + apply discount. One code per purchase.
+        var amountCents = package.PriceCents;
+        Guid? bonusCodeId = null;
+        var discountCents = 0;
+
+        if (!string.IsNullOrWhiteSpace(request.BonusCode))
+        {
+            var validation = await bonusCodes.ValidateAsync(request.BonusCode, package.PriceCents, ct);
+            if (validation.Outcome != BonusCodeOutcome.Ok)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["bonusCode"] = [BonusCodeErrorCode(validation.Outcome)],
+                });
+            }
+
+            if (validation.FinalCents < MinChargeCents)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["bonusCode"] = ["events.bonus_code_amount_too_low"],
+                });
+            }
+
+            amountCents = validation.FinalCents;
+            discountCents = validation.DiscountCents;
+            bonusCodeId = validation.BonusCodeId;
+        }
+
         var appBase = frontend.Value.AppBaseUrl.TrimEnd('/');
         var successUrl = $"{appBase}/dashboard/events/{id}?checkout=success";
         var cancelUrl = $"{appBase}/dashboard/events/{id}?checkout=cancel";
 
         var result = await checkout.StartAsync(
             new CheckoutStart(
-                id, package.Id, package.PriceCents, package.Currency, $"WediFrame — {package.Name}",
+                id, package.Id, amountCents, package.Currency, $"WediFrame — {package.Name}",
                 request.NeedsR1, Trim(request.CompanyName), Trim(request.CompanyOib), Trim(request.CompanyAddress),
-                successUrl, cancelUrl),
+                successUrl, cancelUrl, bonusCodeId, discountCents),
             ct);
 
         return Results.Ok(new CheckoutResponse(result.Url));
     }
+
+    /// <summary>
+    /// Preview a bonus code against this event's package (before redirecting to Stripe),
+    /// so the couple sees the discount, the approximate percentage and the new total.
+    /// </summary>
+    private static async Task<IResult> PreviewBonusCodeAsync(
+        Guid id,
+        BonusCodePreviewRequest request,
+        ClaimsPrincipal principal,
+        IHostEventAccess hostEvents,
+        IPackageCatalog packages,
+        IBonusCodeService bonusCodes,
+        CancellationToken ct)
+    {
+        if (principal.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var ev = await hostEvents.FindOwnedAsync(id, userId, ct);
+        if (ev is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (ev.PackageSlug is null || await packages.GetBySlugAsync(ev.PackageSlug, ct) is not { } package)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["package"] = ["events.package_invalid"],
+            });
+        }
+
+        var currency = package.Currency;
+
+        if (package.IsFree)
+        {
+            return Results.Ok(new BonusCodePreviewResponse(
+                false, "events.package_free", package.PriceCents, 0, package.PriceCents, 0, currency));
+        }
+
+        var validation = await bonusCodes.ValidateAsync(request.Code ?? "", package.PriceCents, ct);
+        if (validation.Outcome != BonusCodeOutcome.Ok)
+        {
+            return Results.Ok(new BonusCodePreviewResponse(
+                false, BonusCodeErrorCode(validation.Outcome),
+                package.PriceCents, 0, package.PriceCents, 0, currency));
+        }
+
+        if (validation.FinalCents < MinChargeCents)
+        {
+            return Results.Ok(new BonusCodePreviewResponse(
+                false, "events.bonus_code_amount_too_low",
+                package.PriceCents, validation.DiscountCents, validation.FinalCents,
+                validation.ApproxPercent, currency));
+        }
+
+        return Results.Ok(new BonusCodePreviewResponse(
+            true, null, package.PriceCents, validation.DiscountCents,
+            validation.FinalCents, validation.ApproxPercent, currency));
+    }
+
+    private static string BonusCodeErrorCode(BonusCodeOutcome outcome) => outcome switch
+    {
+        BonusCodeOutcome.Expired => "events.bonus_code_expired",
+        BonusCodeOutcome.Exhausted => "events.bonus_code_exhausted",
+        BonusCodeOutcome.Inactive => "events.bonus_code_inactive",
+        _ => "events.bonus_code_invalid",
+    };
 
     private static async Task<IResult> StripeWebhookAsync(
         HttpRequest httpRequest,

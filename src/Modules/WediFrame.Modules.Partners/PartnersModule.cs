@@ -21,6 +21,7 @@ public sealed class PartnersModule : IModule
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<WediFrame.Shared.Admin.IPartnerAdmin, PartnerAdmin>();
+        services.AddScoped<WediFrame.Shared.Partners.IBonusCodeService, BonusCodeService>();
         return services;
     }
 
