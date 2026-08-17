@@ -331,6 +331,58 @@
       "next": "Next",
       "pageOf": "Page {page} of {pages}",
       "totalCount": "{total} users"
+    },
+    "events": {
+      "title": "Events",
+      "subtitle": "All events in the system, newest first.",
+      "filters": {
+        "search": "Search by title",
+        "searchPlaceholder": "e.g. Iva and Ivan",
+        "status": "Status",
+        "statusAny": "All statuses",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "col": {
+        "title": "Title",
+        "status": "Status",
+        "owner": "Owner",
+        "package": "Package",
+        "expires": "Expires",
+        "created": "Created"
+      },
+      "status": {
+        "Draft": "Draft",
+        "Active": "Active",
+        "UploadClosed": "Upload closed",
+        "Expired": "Expired",
+        "Deleted": "Deleted"
+      },
+      "detail": {
+        "back": "Back to events",
+        "owner": "Owner",
+        "package": "Package",
+        "uploadStart": "Upload start (T0)",
+        "uploadEnds": "Upload until",
+        "expires": "Gallery until",
+        "cover": "Cover photo",
+        "coverYes": "Set",
+        "coverNo": "Not set",
+        "created": "Created",
+        "eventId": "Event ID",
+        "guestLink": "Guest link",
+        "openGuest": "Open guest page",
+        "guestLinkHint": "This link grants full gallery access — use it only for support.",
+        "moderationSoon": "Moderation (hide/delete media, extend retention) is coming in the next step.",
+        "error": "Could not load the event."
+      },
+      "empty": "No events for the selected filters.",
+      "error": "Could not load events.",
+      "loading": "Loading…",
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "totalCount": "{total} events"
     }
   }
 }

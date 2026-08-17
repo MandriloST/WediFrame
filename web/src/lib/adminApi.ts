@@ -84,3 +84,54 @@ export async function getUsers(
   if (!res.ok) throw new ApiError(res.status, null);
   return (await res.json()) as Paged<AdminUser>;
 }
+
+// --- events (A3) -------------------------------------------------------------
+
+export type AdminEvent = {
+  id: string;
+  title: string;
+  type: string;
+  status: string; // Draft | Active | UploadClosed | Expired | Deleted
+  ownerUserId: string;
+  ownerEmail: string | null;
+  packageSlug: string | null;
+  packageName: string | null;
+  uploadStartDate: string; // yyyy-MM-dd
+  uploadEndsAt: string | null;
+  expiresAt: string | null;
+  hasCover: boolean;
+  createdAt: string; // ISO
+};
+
+export type AdminEventDetail = AdminEvent & {
+  guestToken: string;
+  guestUrl: string;
+};
+
+export type EventFilters = {
+  page?: number;
+  pageSize?: number;
+  q?: string; // title substring
+  status?: string;
+};
+
+export async function getEvents(
+  filters: EventFilters,
+): Promise<Paged<AdminEvent>> {
+  const qs = new URLSearchParams();
+  if (filters.page) qs.set("page", String(filters.page));
+  if (filters.pageSize) qs.set("pageSize", String(filters.pageSize));
+  if (filters.q) qs.set("q", filters.q);
+  if (filters.status) qs.set("status", filters.status);
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await authFetch(`/admin/events${suffix}`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as Paged<AdminEvent>;
+}
+
+export async function getEvent(id: string): Promise<AdminEventDetail> {
+  const res = await authFetch(`/admin/events/${id}`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as AdminEventDetail;
+}

@@ -34,6 +34,9 @@ public sealed class EventsModule : IModule
         // Retention module's worker; the mutation lives here.
         services.AddScoped<IEventRetention, EventRetention>();
 
+        // Read-only admin view over all events (Admin module, A3), via Shared port.
+        services.AddScoped<WediFrame.Shared.Admin.IAdminEventDirectory, AdminEventDirectory>();
+
         return services;
     }
 

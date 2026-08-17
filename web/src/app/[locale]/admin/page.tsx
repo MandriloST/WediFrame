@@ -36,15 +36,15 @@ export default function AdminHomePage() {
           <p className="mt-1 text-sm text-stone-500">{t("home.usersDesc")}</p>
         </Link>
 
-        <div className="rounded-2xl border border-dashed border-stone-200 bg-white/60 p-5">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-stone-700">{t("nav.events")}</h2>
-            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">
-              {t("home.soon")}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-stone-400">{t("home.eventsDesc")}</p>
-        </div>
+        <Link
+          href="/admin/events"
+          className="group rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-rose-300 hover:shadow"
+        >
+          <h2 className="font-semibold text-stone-900 group-hover:text-rose-700">
+            {t("nav.events")}
+          </h2>
+          <p className="mt-1 text-sm text-stone-500">{t("home.eventsDesc")}</p>
+        </Link>
       </div>
     </div>
   );

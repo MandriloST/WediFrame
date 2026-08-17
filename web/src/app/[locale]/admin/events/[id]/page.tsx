@@ -1,0 +1,151 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { type AdminEventDetail, getEvent } from "@/lib/adminApi";
+
+export default function AdminEventDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const t = useTranslations("admin.events");
+  const locale = useLocale();
+
+  const [event, setEvent] = useState<AdminEventDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const e = await getEvent(id);
+        if (alive) setEvent(e);
+      } catch {
+        if (alive) setError(true);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(locale) : "—";
+  const fmtDateTime = (iso: string) =>
+    new Date(iso).toLocaleString(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+  return (
+    <div className="space-y-5">
+      <Link
+        href="/admin/events"
+        className="text-sm text-stone-500 transition hover:text-stone-800"
+      >
+        ← {t("detail.back")}
+      </Link>
+
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {t("detail.error")}
+        </p>
+      ) : loading || !event ? (
+        <p className="text-sm text-stone-500">{t("loading")}</p>
+      ) : (
+        <>
+          <div>
+            <h1 className="text-2xl font-semibold text-stone-900">
+              {event.title}
+            </h1>
+            <p className="mt-1 text-sm text-stone-500">
+              {t(`status.${event.status}`)} · {event.type}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("detail.owner")} value={event.ownerEmail ?? event.ownerUserId} />
+            <Field
+              label={t("detail.package")}
+              value={event.packageName ?? "—"}
+            />
+            <Field
+              label={t("detail.uploadStart")}
+              value={fmtDate(event.uploadStartDate)}
+            />
+            <Field
+              label={t("detail.uploadEnds")}
+              value={fmtDate(event.uploadEndsAt)}
+            />
+            <Field
+              label={t("detail.expires")}
+              value={fmtDate(event.expiresAt)}
+            />
+            <Field
+              label={t("detail.cover")}
+              value={event.hasCover ? t("detail.coverYes") : t("detail.coverNo")}
+            />
+            <Field
+              label={t("detail.created")}
+              value={fmtDateTime(event.createdAt)}
+            />
+            <Field label={t("detail.eventId")} value={event.id} mono />
+          </div>
+
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold text-stone-900">
+              {t("detail.guestLink")}
+            </h2>
+            <p className="mt-1 break-all text-sm text-stone-600">
+              {event.guestUrl}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={event.guestUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100"
+              >
+                {t("detail.openGuest")}
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-stone-400">
+              {t("detail.guestLinkHint")}
+            </p>
+          </div>
+
+          <p className="rounded-xl border border-dashed border-stone-200 bg-white/60 px-4 py-3 text-sm text-stone-500">
+            {t("detail.moderationSoon")}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-stone-400">
+        {label}
+      </div>
+      <div
+        className={`mt-1 break-all text-stone-800 ${mono ? "font-mono text-xs" : ""}`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}

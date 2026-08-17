@@ -331,6 +331,58 @@
       "next": "Sljedeća",
       "pageOf": "Stranica {page} od {pages}",
       "totalCount": "{total} korisnika"
+    },
+    "events": {
+      "title": "Eventi",
+      "subtitle": "Svi eventi u sustavu, najnoviji prvo.",
+      "filters": {
+        "search": "Pretraga po nazivu",
+        "searchPlaceholder": "npr. Iva i Ivan",
+        "status": "Status",
+        "statusAny": "Svi statusi",
+        "apply": "Primijeni",
+        "reset": "Poništi"
+      },
+      "col": {
+        "title": "Naziv",
+        "status": "Status",
+        "owner": "Vlasnik",
+        "package": "Paket",
+        "expires": "Ističe",
+        "created": "Kreiran"
+      },
+      "status": {
+        "Draft": "Nacrt",
+        "Active": "Aktivan",
+        "UploadClosed": "Upload zatvoren",
+        "Expired": "Istekao",
+        "Deleted": "Obrisan"
+      },
+      "detail": {
+        "back": "Natrag na evente",
+        "owner": "Vlasnik",
+        "package": "Paket",
+        "uploadStart": "Početak uploada (T0)",
+        "uploadEnds": "Upload do",
+        "expires": "Galerija do",
+        "cover": "Cover fotografija",
+        "coverYes": "Postavljena",
+        "coverNo": "Nije postavljena",
+        "created": "Kreiran",
+        "eventId": "ID eventa",
+        "guestLink": "Gostovski link",
+        "openGuest": "Otvori gostovsku stranicu",
+        "guestLinkHint": "Ovaj link daje puni pristup galeriji — koristi ga samo za podršku.",
+        "moderationSoon": "Moderacija (skrivanje/brisanje medija, produljenje retencije) stiže u sljedećem koraku.",
+        "error": "Event nije moguće dohvatiti."
+      },
+      "empty": "Nema evenata za odabrane filtere.",
+      "error": "Evente nije moguće dohvatiti.",
+      "loading": "Učitavanje…",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
+      "pageOf": "Stranica {page} od {pages}",
+      "totalCount": "{total} evenata"
     }
   }
 }
