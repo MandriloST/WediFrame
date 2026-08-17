@@ -48,6 +48,7 @@ public sealed class AdminModule : IModule
         group.MapAdminUserEndpoints();
         group.MapAdminEventEndpoints();
         group.MapAdminMediaEndpoints();
+        group.MapAdminPartnerEndpoints();
         return endpoints;
     }
 }

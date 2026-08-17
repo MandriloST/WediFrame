@@ -86,6 +86,17 @@ public sealed record AdminRetentionResponse(DateOnly ExpiresAt, string Status);
 /// <summary>PATCH body for admin media visibility toggle ("Visible" | "Hidden").</summary>
 public sealed record AdminSetVisibilityRequest(string? Visibility);
 
+/// <summary>POST body to create a partner.</summary>
+public sealed record AdminCreatePartnerRequest(
+    string? Name, string? Type, string? ContactEmail, string? ContactPhone, string? Notes);
+
+/// <summary>POST body to create a bonus code under a partner.</summary>
+public sealed record AdminCreateCodeRequest(
+    string? Code, string? DiscountType, int DiscountValue, int? MaxRedemptions, DateOnly? ExpiresAt);
+
+/// <summary>PATCH body to enable/disable a code.</summary>
+public sealed record AdminToggleCodeRequest(bool Active);
+
 /// <summary>Generic paged envelope for admin list endpoints.</summary>
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Items,

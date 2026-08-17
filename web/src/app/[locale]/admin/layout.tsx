@@ -33,6 +33,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: "/admin", label: t("nav.overview"), exact: true },
     { href: "/admin/users", label: t("nav.users") },
     { href: "/admin/events", label: t("nav.events") },
+    { href: "/admin/partners", label: t("nav.partners") },
     { href: "/admin/audit", label: t("nav.audit") },
   ];
 

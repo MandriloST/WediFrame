@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Npgsql EF Core provider (Relational: ToTable/HasConversion) — convention
+         for every module that owns entities. Partners owns Partner + BonusCode. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />
   </ItemGroup>
 </Project>

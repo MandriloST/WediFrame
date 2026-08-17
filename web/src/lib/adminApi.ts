@@ -248,3 +248,126 @@ export async function getOverview(): Promise<AdminOverview> {
   if (!res.ok) throw new ApiError(res.status, null);
   return (await res.json()) as AdminOverview;
 }
+
+// --- partners (P1) -----------------------------------------------------------
+
+export type PartnerListItem = {
+  id: string;
+  name: string;
+  type: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  codeCount: number;
+  createdAt: string;
+};
+
+export type BonusCode = {
+  id: string;
+  code: string;
+  discountType: string; // "Percentage" | "FixedAmount"
+  discountValue: number;
+  maxRedemptions: number | null;
+  expiresAt: string | null; // yyyy-MM-dd
+  redemptionCount: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type PartnerDetail = {
+  id: string;
+  name: string;
+  type: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  notes: string | null;
+  createdAt: string;
+  codes: BonusCode[];
+};
+
+export type PartnerReport = {
+  partnerId: string;
+  name: string;
+  codeCount: number;
+  totalRedemptions: number;
+  codes: BonusCode[];
+};
+
+export type CreatePartnerInput = {
+  name: string;
+  type: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  notes?: string;
+};
+
+export type CreateCodeInput = {
+  code: string;
+  discountType: string;
+  discountValue: number;
+  maxRedemptions?: number | null;
+  expiresAt?: string | null;
+};
+
+export async function getPartners(
+  filters: { page?: number; pageSize?: number; q?: string },
+): Promise<Paged<PartnerListItem>> {
+  const qs = new URLSearchParams();
+  if (filters.page) qs.set("page", String(filters.page));
+  if (filters.pageSize) qs.set("pageSize", String(filters.pageSize));
+  if (filters.q) qs.set("q", filters.q);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await authFetch(`/admin/partners${suffix}`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as Paged<PartnerListItem>;
+}
+
+export async function createPartner(
+  input: CreatePartnerInput,
+): Promise<PartnerListItem> {
+  const res = await authFetch(`/admin/partners`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseProblemCode(res));
+  return (await res.json()) as PartnerListItem;
+}
+
+export async function getPartner(id: string): Promise<PartnerDetail> {
+  const res = await authFetch(`/admin/partners/${id}`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as PartnerDetail;
+}
+
+export async function createCode(
+  partnerId: string,
+  input: CreateCodeInput,
+): Promise<BonusCode> {
+  const res = await authFetch(`/admin/partners/${partnerId}/codes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseProblemCode(res));
+  return (await res.json()) as BonusCode;
+}
+
+export async function toggleCode(
+  partnerId: string,
+  codeId: string,
+  active: boolean,
+): Promise<BonusCode> {
+  const res = await authFetch(`/admin/partners/${partnerId}/codes/${codeId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ active }),
+  });
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as BonusCode;
+}
+
+export async function getPartnerReport(id: string): Promise<PartnerReport> {
+  const res = await authFetch(`/admin/partners/${id}/report`);
+  if (!res.ok) throw new ApiError(res.status, null);
+  return (await res.json()) as PartnerReport;
+}

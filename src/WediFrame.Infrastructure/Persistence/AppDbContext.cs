@@ -3,6 +3,7 @@ using WediFrame.Modules.Billing;
 using WediFrame.Modules.Events;
 using WediFrame.Modules.Identity;
 using WediFrame.Modules.Media;
+using WediFrame.Modules.Partners;
 using WediFrame.Shared.Audit;
 
 namespace WediFrame.Infrastructure.Persistence;
@@ -28,5 +29,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsModule).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MediaModule).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(BillingModule).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PartnersModule).Assembly);
     }
 }

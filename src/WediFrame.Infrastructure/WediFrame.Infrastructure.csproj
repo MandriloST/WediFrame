@@ -17,5 +17,6 @@
     <ProjectReference Include="..\Modules\WediFrame.Modules.Events\WediFrame.Modules.Events.csproj" />
     <ProjectReference Include="..\Modules\WediFrame.Modules.Media\WediFrame.Modules.Media.csproj" />
     <ProjectReference Include="..\Modules\WediFrame.Modules.Billing\WediFrame.Modules.Billing.csproj" />
+    <ProjectReference Include="..\Modules\WediFrame.Modules.Partners\WediFrame.Modules.Partners.csproj" />
   </ItemGroup>
 </Project>

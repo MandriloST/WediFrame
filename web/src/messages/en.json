@@ -265,7 +265,8 @@
       "overview": "Overview",
       "audit": "Audit log",
       "users": "Users",
-      "events": "Events"
+      "events": "Events",
+      "partners": "Partners"
     },
     "home": {
       "title": "Administration",
@@ -435,6 +436,76 @@
       "colEvent": "Event",
       "colItems": "Files",
       "colSize": "Size"
+    },
+    "partners": {
+      "title": "Partners",
+      "subtitle": "Photographers, venues, planners and their bonus codes.",
+      "search": "Search",
+      "searchPlaceholder": "Search by name",
+      "loading": "Loading…",
+      "error": "Could not load partners.",
+      "empty": "No partners yet.",
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "totalCount": "{total} partners",
+      "type": {
+        "Photographer": "Photographer",
+        "Videographer": "Videographer",
+        "Venue": "Venue",
+        "Planner": "Wedding planner",
+        "Organizer": "Organizer",
+        "Other": "Other"
+      },
+      "col": {
+        "name": "Name",
+        "type": "Type",
+        "contact": "Contact",
+        "codes": "Codes",
+        "created": "Created"
+      },
+      "create": {
+        "title": "New partner",
+        "name": "Name",
+        "email": "Email (optional)",
+        "phone": "Phone (optional)",
+        "add": "Add partner",
+        "saving": "Saving…",
+        "error": "Could not add partner."
+      },
+      "detail": {
+        "back": "Back to partners"
+      },
+      "report": {
+        "codes": "Codes",
+        "redemptions": "Redemptions",
+        "active": "Active",
+        "redemptionsHint": "Redemptions are counted when a purchase using the code completes (arrives with checkout wiring)."
+      },
+      "codes": {
+        "createTitle": "New bonus code",
+        "code": "Code",
+        "percentage": "Percentage (%)",
+        "fixed": "Fixed amount (€)",
+        "valuePercent": "Discount % (1–100)",
+        "valueCents": "Amount in cents",
+        "maxRedemptions": "Max redemptions (opt.)",
+        "add": "Add code",
+        "saving": "Saving…",
+        "hint": "Code is stored upper-cased and must be unique. Set discount/limit/expiry here.",
+        "error": "Could not add code.",
+        "errorDuplicate": "That code already exists.",
+        "errorInvalid": "Invalid code values.",
+        "empty": "This partner has no codes yet.",
+        "discount": "Discount",
+        "redemptions": "Redeemed",
+        "expires": "Expires",
+        "status": "Status",
+        "activeYes": "Active",
+        "activeNo": "Inactive",
+        "enable": "Enable",
+        "disable": "Disable"
+      }
     }
   }
 }

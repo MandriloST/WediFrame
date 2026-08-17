@@ -265,7 +265,8 @@
       "overview": "Pregled",
       "audit": "Zapisnik (audit)",
       "users": "Korisnici",
-      "events": "Eventi"
+      "events": "Eventi",
+      "partners": "Partneri"
     },
     "home": {
       "title": "Administracija",
@@ -435,6 +436,76 @@
       "colEvent": "Event",
       "colItems": "Datoteka",
       "colSize": "Veličina"
+    },
+    "partners": {
+      "title": "Partneri",
+      "subtitle": "Fotografi, sale, planneri i njihovi bonus kodovi.",
+      "search": "Traži",
+      "searchPlaceholder": "Pretraga po nazivu",
+      "loading": "Učitavanje…",
+      "error": "Partnere nije moguće dohvatiti.",
+      "empty": "Još nema partnera.",
+      "prev": "Prethodna",
+      "next": "Sljedeća",
+      "pageOf": "Stranica {page} od {pages}",
+      "totalCount": "{total} partnera",
+      "type": {
+        "Photographer": "Fotograf",
+        "Videographer": "Snimatelj",
+        "Venue": "Sala",
+        "Planner": "Wedding planner",
+        "Organizer": "Organizator",
+        "Other": "Ostalo"
+      },
+      "col": {
+        "name": "Naziv",
+        "type": "Tip",
+        "contact": "Kontakt",
+        "codes": "Kodovi",
+        "created": "Kreiran"
+      },
+      "create": {
+        "title": "Novi partner",
+        "name": "Naziv",
+        "email": "E-pošta (opcionalno)",
+        "phone": "Telefon (opcionalno)",
+        "add": "Dodaj partnera",
+        "saving": "Spremanje…",
+        "error": "Partnera nije moguće dodati."
+      },
+      "detail": {
+        "back": "Natrag na partnere"
+      },
+      "report": {
+        "codes": "Kodova",
+        "redemptions": "Iskorištenja",
+        "active": "Aktivnih",
+        "redemptionsHint": "Iskorištenja se broje kad kupnja s kodom prođe (stiže sa spajanjem na checkout)."
+      },
+      "codes": {
+        "createTitle": "Novi bonus kod",
+        "code": "Kod",
+        "percentage": "Postotak (%)",
+        "fixed": "Fiksni iznos (€)",
+        "valuePercent": "Popust % (1–100)",
+        "valueCents": "Iznos u centima",
+        "maxRedemptions": "Max iskorištenja (opc.)",
+        "add": "Dodaj kod",
+        "saving": "Spremanje…",
+        "hint": "Kod se sprema velikim slovima i mora biti jedinstven. Popust/limit/rok postavljaš ovdje.",
+        "error": "Kod nije moguće dodati.",
+        "errorDuplicate": "Taj kod već postoji.",
+        "errorInvalid": "Neispravne vrijednosti koda.",
+        "empty": "Ovaj partner još nema kodova.",
+        "discount": "Popust",
+        "redemptions": "Iskorišteno",
+        "expires": "Vrijedi do",
+        "status": "Status",
+        "activeYes": "Aktivan",
+        "activeNo": "Neaktivan",
+        "enable": "Aktiviraj",
+        "disable": "Deaktiviraj"
+      }
     }
   }
 }
