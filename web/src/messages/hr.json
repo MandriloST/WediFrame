@@ -226,7 +226,19 @@
     "deleteCancel": "Odustani",
     "deleteConfirm": "Da, obriši",
     "deleting": "Brišem…",
-    "deleteError": "Brisanje nije uspjelo. Pokušaj ponovno."
+    "deleteError": "Brisanje nije uspjelo. Pokušaj ponovno.",
+    "bonusLabel": "Bonus kod (nije obavezno)",
+    "bonusPlaceholder": "Unesi kod",
+    "bonusApply": "Primijeni",
+    "bonusApplying": "Provjera…",
+    "bonusRemove": "Ukloni",
+    "bonusApplied": "Popust: −{discount} (≈{percent}%)",
+    "bonusNewTotal": "Novi iznos: {total}",
+    "bonusInvalid": "Kod nije važeći.",
+    "bonusExpired": "Kod je istekao.",
+    "bonusExhausted": "Kod je iskorišten do kraja.",
+    "bonusInactive": "Kod trenutno nije aktivan.",
+    "bonusTooLow": "Popust je prevelik za ovaj paket."
   },
   "hostGallery": {
     "back": "Natrag",

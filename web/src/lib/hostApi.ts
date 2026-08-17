@@ -429,12 +429,38 @@ export type CheckoutR1 = {
 export async function startCheckout(
   id: string,
   r1: CheckoutR1,
+  bonusCode?: string | null,
 ): Promise<{ url: string }> {
   const res = await authFetch(`/events/${id}/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(r1),
+    body: JSON.stringify({ ...r1, bonusCode: bonusCode?.trim() || null }),
   });
   if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
   return (await res.json()) as { url: string };
+}
+
+/** Preview of a bonus code applied to this event's package. */
+export type BonusCodePreview = {
+  valid: boolean;
+  reason: string | null;
+  originalCents: number;
+  discountCents: number;
+  finalCents: number;
+  approxPercent: number;
+  currency: string;
+};
+
+/** Validate a bonus code against the event's package before paying (shows the discount). */
+export async function previewBonusCode(
+  id: string,
+  code: string,
+): Promise<BonusCodePreview> {
+  const res = await authFetch(`/events/${id}/bonus-code/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  return (await res.json()) as BonusCodePreview;
 }

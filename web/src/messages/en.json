@@ -226,7 +226,19 @@
     "deleteCancel": "Cancel",
     "deleteConfirm": "Yes, delete",
     "deleting": "Deleting…",
-    "deleteError": "Delete failed. Please try again."
+    "deleteError": "Delete failed. Please try again.",
+    "bonusLabel": "Bonus code (optional)",
+    "bonusPlaceholder": "Enter code",
+    "bonusApply": "Apply",
+    "bonusApplying": "Checking…",
+    "bonusRemove": "Remove",
+    "bonusApplied": "Discount: −{discount} (≈{percent}%)",
+    "bonusNewTotal": "New total: {total}",
+    "bonusInvalid": "This code isn't valid.",
+    "bonusExpired": "This code has expired.",
+    "bonusExhausted": "This code has been fully used.",
+    "bonusInactive": "This code isn't active right now.",
+    "bonusTooLow": "The discount is too large for this package."
   },
   "hostGallery": {
     "back": "Back",

@@ -10,6 +10,7 @@ import {
   COVER_MAX_BYTES,
   ApiError,
   type CheckoutR1,
+  type BonusCodePreview,
   type EventStats,
   type HostEvent,
   activateEvent,
@@ -23,6 +24,7 @@ import {
   isAuthed,
   reopenUpload,
   startCheckout,
+  previewBonusCode,
   startCoverUpload,
 } from "@/lib/hostApi";
 
@@ -429,6 +431,12 @@ function ActivateSection({
   const [companyOib, setCompanyOib] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
 
+  // Bonus code (optional) — one per purchase; validated via preview before paying.
+  const [bonusCode, setBonusCode] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [preview, setPreview] = useState<BonusCodePreview | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
   useEffect(() => {
     let alive = true;
     getPackages()
@@ -440,12 +448,57 @@ function ActivateSection({
   }, [event.packageSlug]);
 
   const isPaid = !!pkg && pkg.priceCents > 0;
-  const money =
-    pkg && pkg.priceCents > 0
-      ? new Intl.NumberFormat(locale, { style: "currency", currency: pkg.currency }).format(
-          pkg.priceCents / 100,
-        )
-      : "";
+  const currency = pkg?.currency ?? "EUR";
+  const formatMoney = (cents: number) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency }).format(cents / 100);
+  const money = isPaid ? formatMoney(pkg!.priceCents) : "";
+
+  // Effective price shown on the pay button (discounted when a valid code is applied).
+  const payMoney =
+    preview?.valid && isPaid ? formatMoney(preview.finalCents) : money;
+
+  const mapBonusError = (code: string | null): string => {
+    switch (code) {
+      case "events.bonus_code_expired":
+        return t("bonusExpired");
+      case "events.bonus_code_exhausted":
+        return t("bonusExhausted");
+      case "events.bonus_code_inactive":
+        return t("bonusInactive");
+      case "events.bonus_code_amount_too_low":
+        return t("bonusTooLow");
+      default:
+        return t("bonusInvalid");
+    }
+  };
+
+  const applyCode = async () => {
+    const code = bonusCode.trim();
+    if (applying || !code) return;
+    setApplying(true);
+    setCodeError(null);
+    setPreview(null);
+    try {
+      const res = await previewBonusCode(event.id, code);
+      if (res.valid) {
+        setPreview(res);
+      } else {
+        setCodeError(mapBonusError(res.reason));
+      }
+    } catch (e) {
+      setCodeError(
+        e instanceof ApiError ? mapBonusError(e.code) : t("bonusInvalid"),
+      );
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const clearCode = () => {
+    setBonusCode("");
+    setPreview(null);
+    setCodeError(null);
+  };
 
   const mapError = (e: unknown): string => {
     if (e instanceof ApiError && e.code === "events.cannot_checkout") return t("cannotCheckout");
@@ -480,7 +533,11 @@ function ActivateSection({
         companyOib: needsR1 ? companyOib.trim() || null : null,
         companyAddress: needsR1 ? companyAddress.trim() || null : null,
       };
-      const { url } = await startCheckout(event.id, r1);
+      const { url } = await startCheckout(
+        event.id,
+        r1,
+        preview?.valid ? bonusCode.trim() : null,
+      );
       window.location.href = url; // hand off to Stripe's hosted checkout
     } catch (e) {
       setError(mapError(e));
@@ -542,13 +599,65 @@ function ActivateSection({
             </div>
           )}
 
+          {/* Bonus code (optional) */}
+          <div className="mt-4 border-t border-[#F0EBE4] pt-4">
+            <p className="text-sm font-medium text-[#44403C]">{t("bonusLabel")}</p>
+            {preview?.valid ? (
+              <div className="mt-2 rounded-xl border border-[#D8E7DD] bg-[#F3F9F5] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-[#2F6B45]">
+                    {t("bonusApplied", {
+                      discount: formatMoney(preview.discountCents),
+                      percent: preview.approxPercent,
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearCode}
+                    className="shrink-0 text-xs font-medium text-[#7C2D3E] underline"
+                  >
+                    {t("bonusRemove")}
+                  </button>
+                </div>
+                <p className="mt-1 text-sm text-[#1C1917]">
+                  {t("bonusNewTotal", { total: formatMoney(preview.finalCents) })}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={bonusCode}
+                  placeholder={t("bonusPlaceholder")}
+                  onChange={(e) => {
+                    setBonusCode(e.target.value.toUpperCase());
+                    setCodeError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applyCode();
+                  }}
+                  className={`${inputClass} mt-0 uppercase`}
+                />
+                <button
+                  type="button"
+                  onClick={applyCode}
+                  disabled={applying || !bonusCode.trim()}
+                  className="shrink-0 rounded-lg border border-[#7C2D3E] px-4 text-sm font-medium text-[#7C2D3E] transition disabled:opacity-50"
+                >
+                  {applying ? t("bonusApplying") : t("bonusApply")}
+                </button>
+              </div>
+            )}
+            {codeError && <p className="mt-2 text-sm text-[#B4232A]">{codeError}</p>}
+          </div>
+
           <button
             type="button"
             onClick={pay}
             disabled={busy}
             className="mt-3 w-full rounded-xl bg-[#7C2D3E] px-4 py-3 font-medium text-white transition active:scale-[0.99] disabled:opacity-60"
           >
-            {busy ? t("redirecting") : t("payAndActivate", { price: money })}
+            {busy ? t("redirecting") : t("payAndActivate", { price: payMoney })}
           </button>
         </>
       ) : (
