@@ -36,6 +36,10 @@ public sealed class IdentityModule : IModule
         // by password login, refresh, and the upcoming Google / magic-link flows.
         services.AddScoped<ITokenIssuer, TokenIssuer>();
 
+        // Passwordless magic link (safe defaults; works with zero config).
+        services.AddOptions<MagicLinkOptions>()
+            .Bind(configuration.GetSection(MagicLinkOptions.SectionName));
+
         // Cross-module host contact lookup (email + language) for notifications.
         services.AddScoped<IUserDirectory, UserDirectory>();
 

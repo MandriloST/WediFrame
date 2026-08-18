@@ -1,12 +1,19 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WediFrame.Modules.Identity.Contracts;
 using WediFrame.Modules.Identity.Domain;
 using WediFrame.Modules.Identity.Services;
+using WediFrame.Shared.Audit;
+using WediFrame.Shared.Email;
+using WediFrame.Shared.Options;
 using WediFrame.Shared.RateLimiting;
 
 namespace WediFrame.Modules.Identity.Endpoints;
@@ -27,6 +34,8 @@ public static class AuthEndpoints
         group.MapPost("/register", RegisterAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapPost("/login", LoginAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapPost("/refresh", RefreshAsync).RequireRateLimiting(RateLimitPolicies.Auth);
+        group.MapPost("/magic-link/request", MagicLinkRequestAsync).RequireRateLimiting(RateLimitPolicies.Auth);
+        group.MapPost("/magic-link/consume", MagicLinkConsumeAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapGet("/me", MeAsync).RequireAuthorization();
 
         return endpoints;
@@ -160,6 +169,183 @@ public static class AuthEndpoints
         return Results.Ok(response);
     }
 
+    // --- Magic link (passwordless) -----------------------------------------
+
+    private static async Task<IResult> MagicLinkRequestAsync(
+        MagicLinkRequest request,
+        DbContext db,
+        IEmailSender emailSender,
+        IOptions<FrontendOptions> frontend,
+        IOptions<MagicLinkOptions> magicOptions,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken ct)
+    {
+        var options = magicOptions.Value;
+        if (!options.Enabled)
+        {
+            return Results.NotFound();
+        }
+
+        var email = NormalizeEmail(request.Email);
+        var language = NormalizeLanguage(request.Language);
+        var now = timeProvider.GetUtcNow();
+
+        // ALWAYS 200 with no detail past this point — never reveal whether the
+        // email exists, is on cooldown, or whether a mail was actually sent.
+        if (!IsValidEmail(email))
+        {
+            return Results.Ok();
+        }
+
+        // Per-email cooldown: a link was minted very recently → do nothing.
+        var cooldownStart = now.AddSeconds(-options.PerEmailCooldownSeconds);
+        var onCooldown = await db.Set<MagicLinkToken>()
+            .AnyAsync(t => t.Email == email && t.CreatedAt > cooldownStart, ct);
+        if (onCooldown)
+        {
+            return Results.Ok();
+        }
+
+        // Latest link wins: invalidate any still-valid outstanding links.
+        var outstanding = await db.Set<MagicLinkToken>()
+            .Where(t => t.Email == email && t.ConsumedAt == null && t.ExpiresAt > now)
+            .ToListAsync(ct);
+        foreach (var stale in outstanding)
+        {
+            stale.ConsumedAt = now;
+        }
+
+        var rawToken = NewUrlSafeToken();
+        db.Set<MagicLinkToken>().Add(new MagicLinkToken
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            TokenHash = HashToken(rawToken),
+            Purpose = MagicLinkPurpose.Login,
+            PreferredLanguage = language,
+            CreatedAt = now,
+            ExpiresAt = now.AddMinutes(options.TokenLifetimeMinutes),
+        });
+        await db.SaveChangesAsync(ct);
+
+        // Frontend consume page (Step C): {AppBaseUrl}/auth/magic?token=...
+        var appBase = frontend.Value.AppBaseUrl.TrimEnd('/');
+        var link = $"{appBase}/auth/magic?token={rawToken}";
+        var logger = loggerFactory.CreateLogger("Auth.MagicLink");
+
+        // Dev convenience: the no-op email sender never logs the body, so surface
+        // the link in the console when running in Development (dotnet run). Never
+        // in Production — there the link only travels by email.
+        if (IsDevelopmentEnvironment())
+        {
+            logger.LogInformation("DEV magic link for {Email}: {Link}", email, link);
+        }
+
+        try
+        {
+            var message = MagicLinkEmail.Build(language, email, link, options.TokenLifetimeMinutes);
+            await emailSender.SendAsync(message, ct);
+        }
+        catch (Exception ex)
+        {
+            // Don't leak failure to the caller; the token simply goes unused and expires.
+            logger.LogError(ex, "Magic link email send failed.");
+        }
+
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> MagicLinkConsumeAsync(
+        MagicLinkConsumeRequest request,
+        DbContext db,
+        IOptions<MagicLinkOptions> magicOptions,
+        ITokenIssuer tokenIssuer,
+        TimeProvider timeProvider,
+        CancellationToken ct)
+    {
+        if (!magicOptions.Value.Enabled)
+        {
+            return Results.NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            return MagicLinkInvalid();
+        }
+
+        var hash = HashToken(request.Token);
+        var now = timeProvider.GetUtcNow();
+
+        var token = await db.Set<MagicLinkToken>().SingleOrDefaultAsync(t => t.TokenHash == hash, ct);
+
+        // One error for unknown / expired / already-used — no oracle.
+        if (token is null || !token.IsConsumable(now))
+        {
+            return MagicLinkInvalid();
+        }
+
+        token.ConsumedAt = now; // single use
+
+        var user = await db.Set<User>().SingleOrDefaultAsync(u => u.Email == token.Email, ct);
+        var registered = false;
+        if (user is null)
+        {
+            // Registration via magic link: passwordless account, email proven.
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = token.Email,
+                PasswordHash = null,
+                EmailVerified = true,
+                Role = UserRole.Host,
+                PreferredLanguage = token.PreferredLanguage,
+                CreatedAt = now,
+            };
+            db.Set<User>().Add(user);
+            registered = true;
+        }
+        else if (!user.EmailVerified)
+        {
+            user.EmailVerified = true; // consuming the link proves ownership
+        }
+
+        var response = tokenIssuer.IssueSession(user, now);
+
+        db.Set<AuditLogEntry>().Add(new AuditLogEntry
+        {
+            Id = Guid.NewGuid(),
+            OccurredAt = now,
+            ActorUserId = user.Id,
+            Action = registered ? "auth.registered_via_magic_link" : "auth.magic_link_consumed",
+            EntityType = nameof(User),
+            EntityId = user.Id.ToString(),
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Race (e.g. double-click consuming the same token): the account was
+            // created concurrently under the unique email index. Re-resolve it and
+            // issue a session in a clean unit of work.
+            db.ChangeTracker.Clear();
+            var existing = await db.Set<User>().SingleOrDefaultAsync(u => u.Email == token.Email, ct);
+            if (existing is null)
+            {
+                return MagicLinkInvalid();
+            }
+
+            var retry = tokenIssuer.IssueSession(existing, now);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(retry);
+        }
+
+        return Results.Ok(response);
+    }
+
     private static async Task<IResult> MeAsync(ClaimsPrincipal principal, DbContext db, CancellationToken ct)
     {
         var sub = principal.FindFirstValue("sub");
@@ -179,6 +365,23 @@ public static class AuthEndpoints
 
     private static IResult InvalidCredentials()
         => Results.Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "auth.invalid_credentials");
+
+    private static IResult MagicLinkInvalid()
+        => Results.Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "auth.magic_link_invalid");
+
+    /// <summary>32 random bytes, URL-safe base64 (no padding) — safe in a query string.</summary>
+    private static string NewUrlSafeToken()
+        => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    /// <summary>Base64 SHA-256 of the raw token — only this is stored.</summary>
+    private static string HashToken(string rawToken)
+        => Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+
+    private static bool IsDevelopmentEnvironment()
+        => string.Equals(
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            "Development", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeEmail(string? email)
         => (email ?? "").Trim().ToLowerInvariant();

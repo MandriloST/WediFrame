@@ -9,6 +9,12 @@ public sealed record LoginRequest(string Email, string Password);
 
 public sealed record RefreshRequest(string RefreshToken);
 
+// Passwordless magic link. Request always answers 200 (no account enumeration);
+// consume returns the same AuthResponse as password login.
+public sealed record MagicLinkRequest(string Email, string? Language);
+
+public sealed record MagicLinkConsumeRequest(string Token);
+
 public sealed record AuthResponse(
     string AccessToken,
     DateTimeOffset AccessTokenExpiresAt,

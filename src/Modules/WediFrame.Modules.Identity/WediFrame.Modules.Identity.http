@@ -1,1 +1,18 @@
-﻿
+@api = http://localhost:5000/api/v1
+
+### Magic link — request (always 200; in Development the link is logged to the console)
+POST {{api}}/auth/magic-link/request
+Content-Type: application/json
+
+{
+  "email": "testinjo@gmail.com",
+  "language": "hr"
+}
+
+### Magic link — consume (paste the token from the emailed/logged link)
+POST {{api}}/auth/magic-link/consume
+Content-Type: application/json
+
+{
+  "token": "PASTE_TOKEN_FROM_LINK"
+}

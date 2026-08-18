@@ -63,3 +63,33 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public sealed class MagicLinkTokenConfiguration : IEntityTypeConfiguration<MagicLinkToken>
+{
+    public void Configure(EntityTypeBuilder<MagicLinkToken> builder)
+    {
+        builder.ToTable("magic_link_tokens", schema: "identity");
+
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Email)
+            .HasMaxLength(320)
+            .IsRequired();
+
+        // Cooldown + "invalidate outstanding" lookups query by email.
+        builder.HasIndex(x => x.Email);
+
+        builder.Property(x => x.TokenHash)
+            .HasMaxLength(64) // base64 SHA-256 = 44 chars; headroom
+            .IsRequired();
+
+        builder.HasIndex(x => x.TokenHash).IsUnique();
+
+        builder.Property(x => x.Purpose)
+            .HasConversion<string>()
+            .HasMaxLength(16);
+
+        builder.Property(x => x.PreferredLanguage)
+            .HasMaxLength(8);
+    }
+}
