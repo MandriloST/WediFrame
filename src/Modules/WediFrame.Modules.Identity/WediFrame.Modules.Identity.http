@@ -1,4 +1,4 @@
-@api = http://localhost:5000/api/v1
+@api = http://localhost:5080/api/v1
 
 ### Magic link — request (always 200; in Development the link is logged to the console)
 POST {{api}}/auth/magic-link/request
@@ -14,5 +14,5 @@ POST {{api}}/auth/magic-link/consume
 Content-Type: application/json
 
 {
-  "token": "PASTE_TOKEN_FROM_LINK"
+  "token": "gRh490lUVrYuT5jyhf5BV6YD7U-qow8cWB2U88SDw9I"
 }
