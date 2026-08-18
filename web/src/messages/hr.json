@@ -158,12 +158,26 @@
     "registerLink": "Registriraj se",
     "haveAccount": "Već imaš račun?",
     "loginLink": "Prijavi se",
+    "or": "ili",
+    "magicLinkToggle": "Prijava bez lozinke →",
+    "magicLinkTitle": "Prijava putem emaila",
+    "magicLinkHint": "Poslat ćemo ti link za prijavu. Ako još nemaš račun, stvorit ćemo ga — bez lozinke.",
+    "magicLinkButton": "Pošalji mi link",
+    "magicLinkBack": "← Prijava lozinkom",
+    "magicSentTitle": "Provjeri email",
+    "magicSentBody": "Poslali smo link za prijavu na {email}. Vrijedi 15 minuta i može se iskoristiti jednom.",
+    "magicResend": "Pošalji ponovno",
+    "magicVerifying": "Prijavljujemo te…",
+    "magicInvalidTitle": "Link više ne vrijedi",
+    "magicErrorTitle": "Nešto je pošlo po zlu",
+    "magicBackToLogin": "Natrag na prijavu",
     "errors": {
       "invalidCredentials": "Pogrešan email ili lozinka.",
       "emailTaken": "Taj email je već registriran.",
       "emailInvalid": "Neispravan email.",
       "passwordLength": "Lozinka mora imati 8–128 znakova.",
-      "generic": "Nešto je pošlo po zlu. Pokušaj ponovno."
+      "generic": "Nešto je pošlo po zlu. Pokušaj ponovno.",
+      "magicLinkInvalid": "Link je istekao ili je već iskorišten. Zatraži novi na stranici za prijavu."
     }
   },
   "dashboard": {

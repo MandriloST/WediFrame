@@ -158,12 +158,26 @@
     "registerLink": "Sign up",
     "haveAccount": "Already have an account?",
     "loginLink": "Sign in",
+    "or": "or",
+    "magicLinkToggle": "Sign in without a password →",
+    "magicLinkTitle": "Email sign-in",
+    "magicLinkHint": "We'll email you a sign-in link. If you don't have an account yet, we'll create one — no password.",
+    "magicLinkButton": "Email me a link",
+    "magicLinkBack": "← Sign in with password",
+    "magicSentTitle": "Check your email",
+    "magicSentBody": "We've sent a sign-in link to {email}. It's valid for 15 minutes and can be used once.",
+    "magicResend": "Resend",
+    "magicVerifying": "Signing you in…",
+    "magicInvalidTitle": "Link no longer valid",
+    "magicErrorTitle": "Something went wrong",
+    "magicBackToLogin": "Back to sign in",
     "errors": {
       "invalidCredentials": "Wrong email or password.",
       "emailTaken": "That email is already registered.",
       "emailInvalid": "Invalid email.",
       "passwordLength": "Password must be 8–128 characters.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "magicLinkInvalid": "The link has expired or was already used. Request a new one on the sign-in page."
     }
   },
   "dashboard": {

@@ -106,6 +106,8 @@ export function authErrorSubkey(code: string | null): string {
       return "emailInvalid";
     case "auth.password_length":
       return "passwordLength";
+    case "auth.magic_link_invalid":
+      return "magicLinkInvalid";
     default:
       return "generic";
   }
@@ -139,6 +141,39 @@ export async function login(email: string, password: string): Promise<void> {
 
 export function logout(): void {
   clearSession();
+}
+
+/**
+ * Request a passwordless sign-in link. Always resolves for a well-formed email
+ * (the backend answers 200 regardless of whether the account exists — no
+ * enumeration), so the caller shows the same "check your email" screen either
+ * way. Throws only on transport/feature errors (e.g. magic link disabled → 404).
+ */
+export async function requestMagicLink(
+  email: string,
+  language: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/magic-link/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, language }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+}
+
+/**
+ * Consume a magic-link token (from the emailed link). On success the session is
+ * stored exactly like password login. An expired/used/unknown token throws
+ * ApiError with code "auth.magic_link_invalid".
+ */
+export async function consumeMagicLink(token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/magic-link/consume`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  setSession((await res.json()) as AuthResponse);
 }
 
 async function tryRefresh(): Promise<boolean> {
