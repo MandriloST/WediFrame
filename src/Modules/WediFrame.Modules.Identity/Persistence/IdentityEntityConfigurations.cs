@@ -18,9 +18,20 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(x => x.Email).IsUnique();
 
+        // Nullable: Google-only / magic-link-only accounts have no password.
         builder.Property(x => x.PasswordHash)
-            .HasMaxLength(512)
-            .IsRequired();
+            .HasMaxLength(512);
+
+        builder.Property(x => x.EmailVerified)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.GoogleSubjectId)
+            .HasMaxLength(255);
+
+        // Unique when set. On PostgreSQL NULLs are distinct, so many
+        // password/magic-link accounts (GoogleSubjectId == null) coexist freely.
+        builder.HasIndex(x => x.GoogleSubjectId)
+            .IsUnique();
 
         builder.Property(x => x.Role)
             .HasConversion<string>()

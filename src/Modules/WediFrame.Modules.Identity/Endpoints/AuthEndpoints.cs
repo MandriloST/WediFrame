@@ -13,7 +13,8 @@ namespace WediFrame.Modules.Identity.Endpoints;
 
 /// <summary>
 /// Minimal host auth: register, login, refresh (rotating tokens), me.
-/// Rate limiting on these routes arrives in M5; email verification is post-MVP.
+/// Session issuance is centralized in <see cref="ITokenIssuer"/> so Google and
+/// magic-link entry points (arriving in later steps) share one code path.
 /// </summary>
 public static class AuthEndpoints
 {
@@ -35,7 +36,7 @@ public static class AuthEndpoints
         RegisterRequest request,
         DbContext db,
         IPasswordHasher<User> passwordHasher,
-        ITokenService tokenService,
+        ITokenIssuer tokenIssuer,
         TimeProvider timeProvider,
         CancellationToken ct)
     {
@@ -67,16 +68,16 @@ public static class AuthEndpoints
         {
             Id = Guid.NewGuid(),
             Email = email,
-            PasswordHash = "", // set right below (hasher needs the instance)
+            PasswordHash = null, // set right below (hasher needs the instance)
+            EmailVerified = false, // no email-verification flow for password signup (MVP)
             Role = UserRole.Host,
             PreferredLanguage = NormalizeLanguage(request.Language),
             CreatedAt = now,
         };
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
-        var (rawRefresh, refreshEntity) = tokenService.CreateRefreshToken(user.Id, now);
         db.Set<User>().Add(user);
-        db.Set<RefreshToken>().Add(refreshEntity);
+        var response = tokenIssuer.IssueSession(user, now);
 
         try
         {
@@ -88,22 +89,23 @@ public static class AuthEndpoints
             return Results.Problem(statusCode: StatusCodes.Status409Conflict, detail: "auth.email_taken");
         }
 
-        return Results.Created("/api/v1/auth/me", BuildAuthResponse(user, tokenService, now, rawRefresh, refreshEntity));
+        return Results.Created("/api/v1/auth/me", response);
     }
 
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
         DbContext db,
         IPasswordHasher<User> passwordHasher,
-        ITokenService tokenService,
+        ITokenIssuer tokenIssuer,
         TimeProvider timeProvider,
         CancellationToken ct)
     {
         var email = NormalizeEmail(request.Email);
         var user = await db.Set<User>().SingleOrDefaultAsync(u => u.Email == email, ct);
 
-        // Same error for unknown email and wrong password — no account enumeration.
-        if (user is null)
+        // Same error for unknown email, passwordless account, and wrong password —
+        // no account enumeration, and no hint that an account is Google/magic-link only.
+        if (user is null || user.PasswordHash is null)
         {
             return InvalidCredentials();
         }
@@ -120,17 +122,17 @@ public static class AuthEndpoints
         }
 
         var now = timeProvider.GetUtcNow();
-        var (rawRefresh, refreshEntity) = tokenService.CreateRefreshToken(user.Id, now);
-        db.Set<RefreshToken>().Add(refreshEntity);
+        var response = tokenIssuer.IssueSession(user, now);
         await db.SaveChangesAsync(ct);
 
-        return Results.Ok(BuildAuthResponse(user, tokenService, now, rawRefresh, refreshEntity));
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> RefreshAsync(
         RefreshRequest request,
         DbContext db,
         ITokenService tokenService,
+        ITokenIssuer tokenIssuer,
         TimeProvider timeProvider,
         CancellationToken ct)
     {
@@ -152,11 +154,10 @@ public static class AuthEndpoints
 
         // Rotation: revoke the used token, issue a fresh pair.
         stored.RevokedAt = now;
-        var (rawRefresh, refreshEntity) = tokenService.CreateRefreshToken(stored.UserId, now);
-        db.Set<RefreshToken>().Add(refreshEntity);
+        var response = tokenIssuer.IssueSession(stored.User, now);
         await db.SaveChangesAsync(ct);
 
-        return Results.Ok(BuildAuthResponse(stored.User, tokenService, now, rawRefresh, refreshEntity));
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> MeAsync(ClaimsPrincipal principal, DbContext db, CancellationToken ct)
@@ -171,13 +172,6 @@ public static class AuthEndpoints
         return user is null
             ? Results.Unauthorized()
             : Results.Ok(ToUserResponse(user));
-    }
-
-    private static AuthResponse BuildAuthResponse(
-        User user, ITokenService tokenService, DateTimeOffset now, string rawRefresh, RefreshToken refreshEntity)
-    {
-        var (accessToken, accessExpiresAt) = tokenService.CreateAccessToken(user, now);
-        return new AuthResponse(accessToken, accessExpiresAt, rawRefresh, refreshEntity.ExpiresAt, ToUserResponse(user));
     }
 
     private static UserResponse ToUserResponse(User user)

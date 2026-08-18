@@ -2,7 +2,7 @@
 
 > **Pravila:** Ažurira se na kraju svake radne sesije. Statusi: `[ ]` todo, `[~]` u tijeku, `[x]` gotovo, `[!]` blokirano.
 > Redoslijed unutar milestonea = prioritet. Ništa se ne briše (gotovo ostaje radi povijesti).
-> **Zadnje ažurirano:** 2026-08-17 (v50)
+> **Zadnje ažurirano:** 2026-08-18 (v51) — M6 Auth (Google + Magic link): Korak A (temelj)
 
 > **⚠️ ISPORUKA KODA (OBAVEZNO, svaki put):** Sve izmjene korisniku se daju kao **(a) ZIP s točnom strukturom foldera** (raspakiraš u root projekta → sve legne na svoje mjesto, čisti copy/paste) **i/ili (b) `git` patch** (`git apply`). NIKAD samo isječci u chatu bez foldera. Svaki isporučeni file mora biti na svojoj stvarnoj putanji unutar zipa. Ovo je izričit i ponovljen zahtjev vlasnika.
 
@@ -15,6 +15,16 @@
 - **Parra / fiskalizacija — PARKIRANO do obrta.** Kad vlasnik registrira obrt i kupi Parra Biz paket (s API pristupom): treba API ključ + `workspaceId` + FINA/Certilia (demo) certifikat + potvrda create-invoice sheme na api.parra.hr/docs. Tek tada `Fiscalization:Provider=parra`. **Novi chat: NE pokretati Parru dok vlasnik ne javi.** Do tada `manual` (računi ručno; samo Stripe test-mode, bez naplate stvarnim korisnicima).
 - Free limit (v30) = 1 aktivan free event/korisnik — potvrditi ili promijeniti broj/pravilo.
 - **Partneri — provizija ostaje RUČNA u MVP-u** (vlasnik potvrdio v47). Popust primarno **fiksni €** (+≈% prikaz), bez stackanja, bez min. iznosa (kod >0), % floor. P2a backend (v47) gotov; ostaje P2b (frontend) + P3 (izvještaj). *(Riješeno v47.)*
+
+## Riješena pitanja (2026-08-18, Auth)
+
+- **Google prijava + Magic link (passwordless) ulaze u proizvod** — revizija odluke v5 („bez vanjskog IdP-a u MVP-u") na zahtjev vlasnika ✔
+- Magic link radi i **prijavu i registraciju** (unos emaila kreira račun ako ne postoji; email je dokazan) ✔
+- Google se **veže na postojeći password-račun** istog emaila kad je `email_verified=true` ✔
+- Google verifikacija = **pristup B** (frontend GIS → backend verificira ID token) + `Google.Apis.Auth` ✔
+- Oblik `User`-a = **kolone sada** (`GoogleSubjectId`/`EmailVerified`/nullable `PasswordHash`), ne zasebna tablica ✔
+- Postojeći password-useri: `EmailVerified` backfill na **true** ✔
+- Magic link: **15 min** vijek, **jednokratno**, **60 s** per-email cooldown (defaulti, configabilno) ✔
 
 ## Riješena pitanja (2026-07-07)
 
@@ -120,6 +130,27 @@
 - [x] PWA fino — **v50**: prave brendirane ikone (bordo „W" monogram: 192/512/maskable + apple-touch + favicon PNG/SVG), manifest branded (theme bordo / splash cream), service worker (network-first navigacije → offline fallback; static cache-first), `offline.html` (HR/EN), registracija samo u produkciji. Test: `npm run build && npm start`
 - [ ] Load test upload flowa (~100 istovremenih gostiju)
 - [ ] Pilot: 1–2 stvarna eventa (preko partnera, možda besplatno) prije naplate
+
+## M6 — Auth: Google prijava + Magic link (passwordless)
+
+> Cilj: na `/login` i `/register` dodati **„Nastavi s Googleom"** i **prijavu/registraciju magic linkom** (unos emaila → link na mail → klik = ulogiran). Sesija (JWT+refresh) ostaje ista; backend jedini izdaje tokene. Redoslijed malih koraka A→F.
+
+- [x] **Korak A — Temelj (User model + token issuer)** — **v51**: `User.PasswordHash` **nullable** (Google-only/magic-only račun nema lozinku), nova polja `EmailVerified` (bool) + `GoogleSubjectId` (nullable, unique) s EF konfiguracijom; login odbija passwordless račun istom `auth.invalid_credentials` greškom (bez enumeracije). Izdvojen **`ITokenIssuer`** (`IssueSession(user, now)`) — jedan kod-put za access+refresh koji sada koriste register/login/refresh, a preuzet će ga Google i magic link. **Traži migraciju `AddUserAuthMethods`** + jednu ručnu backfill liniju (SQL dolje). Bez frontend/i18n promjena.
+- [ ] **Korak B — Magic link backend**: `MagicLinkToken` entitet (SHA-256 hash tokena, expiry, consumed, purpose), `POST /auth/magic-link/request` (**uvijek 200**, per-email cooldown 60 s) + `POST /auth/magic-link/consume` (nađi/kreiraj usera → `EmailVerified=true` → `ITokenIssuer` izda sesiju), email template HR/EN (reuse `IEmailSender`), rate-limit (`auth` politika), audit `auth.magic_link_consumed`. **Traži migraciju** (token tablica).
+- [ ] **Korak C — Magic link frontend**: `/login` „pošalji mi link" grana + `/auth/magic` consume stranica (stanja: valid/expired/used/invalid), `hostApi.requestMagicLink/consumeMagicLink`, i18n HR/EN. Test na mobitelu.
+- [ ] **Korak D — Google backend**: `POST /auth/google` (verify ID token preko `Google.Apis.Auth`: potpis/`aud`=ClientId/`iss`/`exp`/`email_verified` → match po `GoogleSubjectId` pa po verificiranom emailu → link/kreiraj → `ITokenIssuer`), config `Auth:Google:{Enabled,ClientId}` + feature flag, audit `auth.google_login`/`auth.google_linked`/`auth.registered_via_google`. Bez migracije (kolone iz A).
+- [ ] **Korak E — Google frontend**: GIS gumb na `/login` + `/register`, `hostApi.googleSignIn(idToken)`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, i18n HR/EN, kratka privacy napomena.
+- [ ] **Korak F — Poliranje/legal**: Privacy Policy spominje Google kao izvršitelja + što spremamo (email, ime, Google `sub`); cleanup isteklih magic tokena; test u IG/WhatsApp webviewu (Google OAuth zna biti blokiran u embedanim webviewima — magic link je fallback).
+
+**Korak A — migracija (radi vlasnik lokalno):**
+```
+dotnet ef migrations add AddUserAuthMethods --project src/WediFrame.Infrastructure --startup-project src/WediFrame.Api
+```
+Zatim u generiranu migraciju, u `Up(...)` **nakon** `AddColumn`-a za `EmailVerified`, dodati jednu liniju za backfill postojećih (svi su trenutno password-računi):
+```csharp
+migrationBuilder.Sql("UPDATE identity.users SET \"EmailVerified\" = true;");
+```
+pa `dotnet ef database update`.
 
 ## Post-MVP (parkirano, ne raditi bez odluke)
 
@@ -337,16 +368,22 @@
 
 | 2026-08-17 (v50) | PWA: **vanilla service worker** (bez next-pwa/Workbox), registriran **samo u produkciji**; ikone generirane (bordo monogram) kao placeholder do pravog loga | Bez dodatnog build-toolinga/ovisnosti; dev HMR ostaje čist; brendirane ikone odmah, pravi logo lako zamjenjiv |
 
+| 2026-08-18 (v51) | **Revizija v5**: Google prijava + Magic link (passwordless) **ulaze u proizvod** (v5 je isključivao vanjski IdP u MVP-u) | Zahtjev vlasnika; niže trenje prijave/registracije. Guest/upload tok netaknut (gosti se ne prijavljuju) |
+| 2026-08-18 (v51) | **`User.PasswordHash` nullable** + polja `EmailVerified` (bool) i `GoogleSubjectId` (nullable, unique); kolone na `User`, **ne** zasebna `UserExternalLogin` tablica | Mali korak za samo Google; NULL-ovi na PG-u su distinct pa unique index na `GoogleSubjectId` dopušta mnogo password/magic računa. Tablica tek ako dođu Apple/Facebook |
+| 2026-08-18 (v51) | Login **odbija passwordless račun** istom `auth.invalid_credentials` porukom kao krivu lozinku/nepostojeći email | Bez enumeracije i bez odavanja da je račun Google/magic-only |
+| 2026-08-18 (v51) | Izdvojen **`ITokenIssuer.IssueSession(user, now)`** (Identity/Services) — mintanje access+refresh + oblik `AuthResponse`; **ne** radi SaveChanges (caller drži transakciju) | Jedan kod-put za sesiju za login/refresh/Google/magic; register i dalje sprema Usera+refresh u istom commitu |
+| 2026-08-18 (v51) | `EmailVerified` backfill postojećih na **true** kroz ručnu `migrationBuilder.Sql(...)` liniju u generiranoj migraciji | Svi postojeći su password-računi u aktivnoj upotrebi; nema re-verifikacije; novi password signup ostaje `false` (MVP nema email-verify flow) |
+| 2026-08-18 (v51) | Google = **pristup B** (frontend GIS ID token → `POST /auth/google` verificira) + `Google.Apis.Auth`; backend treba samo `ClientId` (nema client secreta) | Backend ostaje jedini izdavatelj WediFrame tokena, bez cookie-scheme i redirect handoffa; JWKS/RS256 se ne piše ručno (kao ni PBKDF2) |
+| 2026-08-18 (v51) | Magic link: 32B→Base64Url token, u bazi **samo SHA-256 hash** (kao refresh); **15 min**, jednokratno, **60 s** per-email cooldown, `request` uvijek 200 | Zrcali refresh-token obrazac; anti-enumeration + zaštita od mail-bombinga; brojke configabilne |
+
 ## Dnevnik sesija
 
 > Puna arhiva svih sesija: **`docs/HISTORY.md`**. Ovdje su samo zadnje 3 radi brzog konteksta.
 
+- **2026-08-18 (v51)** — **M6 Auth (Google + Magic link): Korak A — temelj.** Nova feature grana dogovorena s vlasnikom (revizija v5): dodati Google prijavu i passwordless magic link uz postojeći email+lozinka. Plan razrađen u 6 malih koraka (A–F, u M6). Povučen `develop` (v50). Isporučen **Korak A** (**BACKEND ONLY, bez frontend/i18n**): **`User`** — `PasswordHash` sada **nullable** (Google-only/magic-only račun nema lozinku), dodana polja **`EmailVerified`** (bool, default false) i **`GoogleSubjectId`** (nullable, unique index; NULL-ovi distinct na PG-u). **EF config** (`IdentityEntityConfigurations`): `PasswordHash` više nije `IsRequired`, dodane konfiguracije novih polja + unique index. **`AuthEndpoints`** refaktoriran: login odbija passwordless račun istom `auth.invalid_credentials` (bez enumeracije); register/login/refresh sada prolaze kroz novi **`ITokenIssuer.IssueSession`** (Identity/Services/`TokenIssuer.cs`) umjesto inline `BuildAuthResponse` — jedan kod-put za sesiju koji preuzimaju Google (D) i magic link (B). `ITokenService` ostaje (refresh koristi `HashRefreshToken`). Registriran `ITokenIssuer` u `IdentityModule`. **Nije kompajlirano** (nema .NET SDK) — ručno provjereno: balans zagrada svih 5 fileova, nema zaostalih `BuildAuthResponse/CreateAccessToken` u endpointima, jedini `new User` (register) postavlja `Email`, `ITokenIssuer` ožičen u DI, Infrastructure već aplicira Identity konfiguracije. **Korisnik lokalno:** `git pull` → migracija `AddUserAuthMethods` (naredba u M6) → **dodati ručnu backfill liniju** (`UPDATE identity.users SET "EmailVerified" = true;`) u `Up()` → `database update`. Postojeći login/register/refresh rade kao prije. **Sljedeći korak — Korak B (Magic link backend):** `MagicLinkToken` entitet + `request`/`consume` endpointi + email HR/EN + rate-limit + audit.
+
 - **2026-08-17 (v50)** — **M5: PWA fino (ikone + service worker + offline).** Povučen `develop` (`252720d`, v49). Isporučeno (**frontend/infra, BEZ backend/migracije**): **Prave brendirane ikone** (Pillow generator: bordo `#7C2D3E` monogram „W" na cream/full-bleed) — zamijenjeni placeholderi `icon-192/512/maskable-512`, dodani `apple-touch-icon.png` (180, full-bleed za iOS masku), `favicon-32.png`, `favicon.svg`+`logo.svg` (skalabilni). **Manifest** (`app/manifest.ts`) branded: `theme_color` `#7C2D3E`, `background_color` `#FFFDF9` (splash). **Metadata** (`[locale]/layout.tsx`): `icons` (favicon svg/png + apple-touch), `viewport.themeColor` bordo. **Service worker** `public/sw.js` (vanilla, bez build-toolinga): precache offline stranice; **navigacije network-first → `/offline.html` kad offline**; static (`/icons/*`, manifest) cache-first uz refresh; media/API/cross-origin prolaze netaknuti; versioned cache + cleanup + skipWaiting/clients.claim. **Offline fallback** `public/offline.html` (brendiran, HR+EN, „Pokušaj ponovno", note da se uploadi nastavljaju kad se veza vrati). **Registracija** `components/ServiceWorkerRegister.tsx` (client, **samo u produkciji** — u devu SW se ne registrira da ne tuče Next HMR), renderan u layout body. **Nije kompajlirano** (nema node_modules) — ručno provjereno: layout/SW/component balans, manifest ikone, sve datoteke na disku, wiring (import+render+metadata). **Korisnik lokalno:** `git pull` → `cd web` → **PWA/offline test ide preko `npm run build && npm start`** (ne `dev`, jer je SW gated na produkciju); DevTools → Application → Manifest/Service Workers; Network „Offline" → navigacija pokaže `/offline.html`; provjeri instalabilnost (Add to Home Screen) i ikonu. **Sljedeći korak (M5 launch):** load test upload flowa (~100 istovremenih gostiju) pa pilot (1–2 stvarna eventa). Alternativa: bogatiji partner izvještaj (P3), ili zamjena monogram-ikone pravim logom kad ga vlasnik dostavi.
 
 - **2026-08-17 (v49)** — **M5: landing stranica (marketing).** Povučen `develop` (`7c7d300`, v48). Zamijenjen placeholder landing pravom marketinškom stranicom (`app/[locale]/page.tsx`, server component, `setRequestLocale`+`getTranslations`, **BEZ backend/migracije, bez API poziva**): sticky top-bar (wordmark + Cijene/Prijava + „Kreiraj event" CTA na `/register`), **hero** (Fraunces naslov, subtitle, dvije CTA na `/register` i `/pricing`, trust badge) s dekorativnim `HeroArt` (nagnute foto-kartice + inline QR SVG, bez asseta), **Kako radi** (3 koraka), **Zašto WediFrame** (6 feature kartica s inline SVG ikonama), **privatnost/trust** (tamna bordo sekcija „što NE radimo": bez treniranja AI-a / bez prodaje podataka / bez javnog dijeljenja — iz PROJECT §4), **paketi CTA** (link na `/pricing`), **završni CTA** + footer (Privacy/Terms/„Powered by EverFrame", reuse `common`). Brand: bordo `#7C2D3E` na `#FFFDF9`, Fraunces za naslove (lokalni `next/font/google`, kao guest stranica). Copy utemeljen u PROJECT-u (bez registracije/instalacije, QR, svi vide sve, EU hosting, retencija) — ništa izmišljeno. i18n: prošireni `landing` namespace (nav/hero/how/features/privacy/packagesCta/finalCta, HR/EN parni; **stari ključevi title/subtitle/steps/cta zadržani** da se ništa ne razbije). **Nije kompajlirano** (nema node_modules) — ručno provjereno: TSX balans 94/94 {} 62/62 (), JSON oba jezika valjan, rute `/login`+`/register`+`/pricing` postoje, `common.appName/poweredBy` prisutni. **Korisnik lokalno:** `git pull` → `cd web && npm run dev` (BEZ dotnet/migracije) → otvori `/` i `/en`. **Sljedeći korak (M5 launch):** PWA fino (prave ikone/logo umjesto placeholdera, service worker, offline fallback), zatim load test upload flowa i pilot. Alternativa: bogatiji partner izvještaj (P3).
-
-- **2026-08-17 (v48)** — **M5 Partneri P2b: bonus kod u checkout UI (frontend).** Povučen `develop` (`4600e2f`, v47). Isporučen **P2b** (**frontend, BEZ migracije**): **hostApi** — `previewBonusCode(id, code)` (+ `BonusCodePreview` tip: valid/reason/original/discount/final/≈%/valuta) i `startCheckout` dobio treći param `bonusCode` (šalje se u body uz R1). **`ActivateSection`** (detalj eventa, plaćena grana): polje „Bonus kod" + „Primijeni" → poziv preview; ako valjan → zelena kartica „Popust: −X € (≈Y%)" + „Novi iznos: Z €" + „Ukloni"; ako nevaljan → mapirana poruka (`bonusInvalid/Expired/Exhausted/Inactive/TooLow`); „Plati" gumb prikazuje **umanjeni** iznos (`payMoney`) i šalje kod u `startCheckout` (samo kad je preview valjan). Kod se normalizira na velika slova; Enter primjenjuje. i18n `eventDetail.bonus*` (HR/EN). **Nije kompajlirano** (nema node_modules) — ručno provjereno: TSX balans 284/284 {} 405/405 (), JSON oba jezika valjan, importi (`previewBonusCode`, `BonusCodePreview`) i wiring (preview→pay) na mjestu. **Korisnik lokalno:** `git pull` → `cd web && npm run dev` (BEZ backend/migracije). **Test:** admin kreira kod (P1) → host Draft s plaćenim paketom → detalj → upiši kod → „Primijeni" → vidi popust+≈%+novi iznos → „Plati …" (umanjeno) → Stripe test → povratak, event Active, `RedemptionCount`+1; probaj nevaljan/istekao/iskorišten kod → poruka; EN na `/en/...`. **→ Time je P2 (bonus kodovi u checkoutu) GOTOV.** **Sljedeći korak — P3 (opcionalno):** bogatiji partner izvještaj (iskorištenja po eventu/iznosu, ukupan dani popust) — trenutni report već pokazuje realne brojke po kodu. Alternativa (M5 launch blok): landing dizajn, PWA fino (ikone/SW/offline), load test, pilot.
-
-
 
 — _starije sesije: `docs/HISTORY.md`_

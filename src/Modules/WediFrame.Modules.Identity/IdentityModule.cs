@@ -32,6 +32,10 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<ITokenService, TokenService>();
 
+        // Single seam for minting a session (access JWT + rotating refresh) shared
+        // by password login, refresh, and the upcoming Google / magic-link flows.
+        services.AddScoped<ITokenIssuer, TokenIssuer>();
+
         // Cross-module host contact lookup (email + language) for notifications.
         services.AddScoped<IUserDirectory, UserDirectory>();
 
