@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -36,6 +37,7 @@ public static class AuthEndpoints
         group.MapPost("/refresh", RefreshAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapPost("/magic-link/request", MagicLinkRequestAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapPost("/magic-link/consume", MagicLinkConsumeAsync).RequireRateLimiting(RateLimitPolicies.Auth);
+        group.MapPost("/google", GoogleSignInAsync).RequireRateLimiting(RateLimitPolicies.Auth);
         group.MapGet("/me", MeAsync).RequireAuthorization();
 
         return endpoints;
@@ -346,6 +348,138 @@ public static class AuthEndpoints
         return Results.Ok(response);
     }
 
+    // --- Google Sign-In (approach B: verify ID token server-side) -----------
+
+    private static async Task<IResult> GoogleSignInAsync(
+        GoogleSignInRequest request,
+        DbContext db,
+        IOptions<GoogleAuthOptions> googleOptions,
+        ITokenIssuer tokenIssuer,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken ct)
+    {
+        var options = googleOptions.Value;
+        if (!options.Enabled || string.IsNullOrWhiteSpace(options.ClientId))
+        {
+            return Results.NotFound(); // feature off / not configured → frontend hides the button
+        }
+
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            return GoogleInvalidToken();
+        }
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            // Verifies signature (Google JWKS), issuer, expiry, and audience == our ClientId.
+            payload = await GoogleJsonWebSignature.ValidateAsync(
+                request.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings { Audience = [options.ClientId] });
+        }
+        catch (InvalidJwtException)
+        {
+            return GoogleInvalidToken();
+        }
+        catch (Exception ex)
+        {
+            // Cert-fetch / network failure while verifying with Google → 401 (client retries).
+            loggerFactory.CreateLogger("Auth.Google").LogError(ex, "Google token validation failed.");
+            return GoogleInvalidToken();
+        }
+
+        // Only ever trust a Google-verified email — never link/create on an unverified one.
+        if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email))
+        {
+            return GoogleInvalidToken();
+        }
+
+        var email = NormalizeEmail(payload.Email);
+        var subject = payload.Subject; // stable Google user id ("sub")
+        var language = NormalizeLanguage(payload.Locale?.Split('-')[0]);
+        var now = timeProvider.GetUtcNow();
+
+        // 1) Match by Google subject first — survives an email change on Google's side.
+        var user = await db.Set<User>().SingleOrDefaultAsync(u => u.GoogleSubjectId == subject, ct);
+        string action;
+        if (user is not null)
+        {
+            action = "auth.google_login";
+        }
+        else
+        {
+            // 2) Else match by the verified email and link Google to that account.
+            user = await db.Set<User>().SingleOrDefaultAsync(u => u.Email == email, ct);
+            if (user is not null)
+            {
+                if (string.IsNullOrEmpty(user.GoogleSubjectId))
+                {
+                    user.GoogleSubjectId = subject;
+                    user.EmailVerified = true;
+                    action = "auth.google_linked";
+                }
+                else
+                {
+                    // Email already linked to a different Google sub (anomalous). Email
+                    // ownership is still proven, so log in without touching the link.
+                    action = "auth.google_login";
+                }
+            }
+            else
+            {
+                // 3) Brand-new account: passwordless, email verified by Google.
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    PasswordHash = null,
+                    EmailVerified = true,
+                    GoogleSubjectId = subject,
+                    Role = UserRole.Host,
+                    PreferredLanguage = language,
+                    CreatedAt = now,
+                };
+                db.Set<User>().Add(user);
+                action = "auth.registered_via_google";
+            }
+        }
+
+        var response = tokenIssuer.IssueSession(user, now);
+
+        db.Set<AuditLogEntry>().Add(new AuditLogEntry
+        {
+            Id = Guid.NewGuid(),
+            OccurredAt = now,
+            ActorUserId = user.Id,
+            Action = action,
+            EntityType = nameof(User),
+            EntityId = user.Id.ToString(),
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Race on first sign-in (unique Email / GoogleSubjectId). Re-resolve and issue.
+            db.ChangeTracker.Clear();
+            var existing = await db.Set<User>()
+                .SingleOrDefaultAsync(u => u.GoogleSubjectId == subject || u.Email == email, ct);
+            if (existing is null)
+            {
+                return GoogleInvalidToken();
+            }
+
+            var retry = tokenIssuer.IssueSession(existing, now);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(retry);
+        }
+
+        return Results.Ok(response);
+    }
+
     private static async Task<IResult> MeAsync(ClaimsPrincipal principal, DbContext db, CancellationToken ct)
     {
         var sub = principal.FindFirstValue("sub");
@@ -368,6 +502,9 @@ public static class AuthEndpoints
 
     private static IResult MagicLinkInvalid()
         => Results.Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "auth.magic_link_invalid");
+
+    private static IResult GoogleInvalidToken()
+        => Results.Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "auth.google_invalid_token");
 
     /// <summary>32 random bytes, URL-safe base64 (no padding) — safe in a query string.</summary>
     private static string NewUrlSafeToken()

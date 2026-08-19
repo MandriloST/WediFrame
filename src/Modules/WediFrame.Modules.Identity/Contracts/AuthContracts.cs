@@ -15,6 +15,11 @@ public sealed record MagicLinkRequest(string Email, string? Language);
 
 public sealed record MagicLinkConsumeRequest(string Token);
 
+// Google Sign-In (approach B): the frontend obtains a Google ID token via Google
+// Identity Services and posts it here; the backend verifies it and issues its own
+// session. Returns the same AuthResponse as password login.
+public sealed record GoogleSignInRequest(string IdToken);
+
 public sealed record AuthResponse(
     string AccessToken,
     DateTimeOffset AccessTokenExpiresAt,

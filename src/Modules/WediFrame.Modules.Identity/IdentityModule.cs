@@ -40,6 +40,10 @@ public sealed class IdentityModule : IModule
         services.AddOptions<MagicLinkOptions>()
             .Bind(configuration.GetSection(MagicLinkOptions.SectionName));
 
+        // Google Sign-In (opt-in; verified server-side against Auth:Google:ClientId).
+        services.AddOptions<GoogleAuthOptions>()
+            .Bind(configuration.GetSection(GoogleAuthOptions.SectionName));
+
         // Cross-module host contact lookup (email + language) for notifications.
         services.AddScoped<IUserDirectory, UserDirectory>();
 

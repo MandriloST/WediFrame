@@ -16,3 +16,12 @@ Content-Type: application/json
 {
   "token": "gRh490lUVrYuT5jyhf5BV6YD7U-qow8cWB2U88SDw9I"
 }
+
+### Google sign-in — verify ID token (needs Auth:Google:Enabled=true + ClientId)
+### A real ID token comes from the frontend Google button (Step E); paste one here to test.
+POST {{api}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "PASTE_GOOGLE_ID_TOKEN"
+}

@@ -6,6 +6,8 @@
          JwtBearer: donosi Microsoft.IdentityModel.JsonWebTokens za izdavanje tokena. -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <!-- Server-side verification of Google ID tokens (Auth:Google flow). -->
+    <PackageReference Include="Google.Apis.Auth" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\WediFrame.Shared\WediFrame.Shared.csproj" />

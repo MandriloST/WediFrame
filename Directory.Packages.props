@@ -10,6 +10,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.4" />
     <PackageVersion Include="QRCoder" Version="1.8.0" />
+    <!-- Google Sign-In: server-side ID token verification (GoogleJsonWebSignature).
+         Official library — we don't hand-roll JWKS/RS256 (same rationale as using
+         the framework PasswordHasher). Version tracks google-api-dotnet-client
+         releases; if restore rejects it, bump to the latest 1.x. -->
+    <PackageVersion Include="Google.Apis.Auth" Version="1.75.0" />
     <!-- Storage (Cloudflare R2, S3-compatible) -->
     <PackageVersion Include="AWSSDK.S3" Version="4.0.102" />
     <!-- Plaćanje: Stripe Checkout + webhook. API koji koristimo (SessionService,
