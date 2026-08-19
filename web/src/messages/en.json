@@ -171,13 +171,15 @@
     "magicInvalidTitle": "Link no longer valid",
     "magicErrorTitle": "Something went wrong",
     "magicBackToLogin": "Back to sign in",
+    "legalNote": "By continuing you accept our <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
     "errors": {
       "invalidCredentials": "Wrong email or password.",
       "emailTaken": "That email is already registered.",
       "emailInvalid": "Invalid email.",
       "passwordLength": "Password must be 8–128 characters.",
       "generic": "Something went wrong. Please try again.",
-      "magicLinkInvalid": "The link has expired or was already used. Request a new one on the sign-in page."
+      "magicLinkInvalid": "The link has expired or was already used. Request a new one on the sign-in page.",
+      "googleInvalidToken": "Google sign-in failed. Please try again."
     }
   },
   "dashboard": {

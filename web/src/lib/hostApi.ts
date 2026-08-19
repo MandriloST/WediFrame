@@ -108,6 +108,8 @@ export function authErrorSubkey(code: string | null): string {
       return "passwordLength";
     case "auth.magic_link_invalid":
       return "magicLinkInvalid";
+    case "auth.google_invalid_token":
+      return "googleInvalidToken";
     default:
       return "generic";
   }
@@ -141,6 +143,22 @@ export async function login(email: string, password: string): Promise<void> {
 
 export function logout(): void {
   clearSession();
+}
+
+/**
+ * Sign in (or register) with a Google ID token obtained from Google Identity
+ * Services on the client. On success the session is stored like password login.
+ * A rejected/invalid token throws ApiError with "auth.google_invalid_token";
+ * a 404 means Google sign-in isn't enabled on the backend.
+ */
+export async function googleSignIn(idToken: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorCode(res));
+  setSession((await res.json()) as AuthResponse);
 }
 
 /**

@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { ApiError, authErrorSubkey, isAuthed, register } from "@/lib/hostApi";
+import {
+  ApiError,
+  authErrorSubkey,
+  googleSignIn,
+  isAuthed,
+  register,
+} from "@/lib/hostApi";
+import GoogleSignInButton, {
+  isGoogleConfigured,
+} from "@/components/auth/GoogleSignInButton";
 
 export default function RegisterPage() {
   const t = useTranslations("auth");
@@ -18,6 +27,9 @@ export default function RegisterPage() {
     if (isAuthed()) router.replace("/dashboard");
   }, [router]);
 
+  const showError = (e: unknown) =>
+    setError(t(`errors.${authErrorSubkey(e instanceof ApiError ? e.code : null)}`));
+
   const submit = async () => {
     if (busy) return;
     setBusy(true);
@@ -26,9 +38,19 @@ export default function RegisterPage() {
       await register(email.trim(), password, locale);
       router.replace("/dashboard");
     } catch (e) {
-      setError(
-        t(`errors.${authErrorSubkey(e instanceof ApiError ? e.code : null)}`),
-      );
+      showError(e);
+      setBusy(false);
+    }
+  };
+
+  const handleGoogle = async (idToken: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await googleSignIn(idToken);
+      router.replace("/dashboard");
+    } catch (e) {
+      showError(e);
       setBusy(false);
     }
   };
@@ -78,6 +100,26 @@ export default function RegisterPage() {
           >
             {busy ? t("pleaseWait") : t("registerButton")}
           </button>
+
+          {isGoogleConfigured() && (
+            <>
+              <div className="mt-5 flex items-center gap-3">
+                <span className="h-px flex-1 bg-[#EFE8E0]" />
+                <span className="text-xs uppercase tracking-wide text-[#A8A29E]">
+                  {t("or")}
+                </span>
+                <span className="h-px flex-1 bg-[#EFE8E0]" />
+              </div>
+
+              <div className="mt-4 flex justify-center">
+                <GoogleSignInButton
+                  onCredential={handleGoogle}
+                  locale={locale}
+                  text="signup_with"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <p className="mt-4 text-center text-sm text-[#57534E]">
@@ -85,6 +127,21 @@ export default function RegisterPage() {
           <Link href="/login" className="font-medium text-[#7C2D3E]">
             {t("loginLink")}
           </Link>
+        </p>
+
+        <p className="mt-3 text-center text-xs text-[#A8A29E]">
+          {t.rich("legalNote", {
+            terms: (c) => (
+              <Link href="/terms" className="underline">
+                {c}
+              </Link>
+            ),
+            privacy: (c) => (
+              <Link href="/privacy" className="underline">
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       </div>
     </main>

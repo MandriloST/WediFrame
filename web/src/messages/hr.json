@@ -171,13 +171,15 @@
     "magicInvalidTitle": "Link više ne vrijedi",
     "magicErrorTitle": "Nešto je pošlo po zlu",
     "magicBackToLogin": "Natrag na prijavu",
+    "legalNote": "Nastavkom prihvaćaš <terms>Uvjete korištenja</terms> i <privacy>Politiku privatnosti</privacy>.",
     "errors": {
       "invalidCredentials": "Pogrešan email ili lozinka.",
       "emailTaken": "Taj email je već registriran.",
       "emailInvalid": "Neispravan email.",
       "passwordLength": "Lozinka mora imati 8–128 znakova.",
       "generic": "Nešto je pošlo po zlu. Pokušaj ponovno.",
-      "magicLinkInvalid": "Link je istekao ili je već iskorišten. Zatraži novi na stranici za prijavu."
+      "magicLinkInvalid": "Link je istekao ili je već iskorišten. Zatraži novi na stranici za prijavu.",
+      "googleInvalidToken": "Google prijava nije uspjela. Pokušaj ponovno."
     }
   },
   "dashboard": {

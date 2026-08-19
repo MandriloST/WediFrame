@@ -6,10 +6,12 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   ApiError,
   authErrorSubkey,
+  googleSignIn,
   isAuthed,
   login,
   requestMagicLink,
 } from "@/lib/hostApi";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 type Mode = "password" | "magic";
 
@@ -29,6 +31,9 @@ export default function LoginPage() {
     if (isAuthed()) router.replace("/dashboard");
   }, [router]);
 
+  const showError = (e: unknown) =>
+    setError(t(`errors.${authErrorSubkey(e instanceof ApiError ? e.code : null)}`));
+
   const submitPassword = async () => {
     if (busy) return;
     setBusy(true);
@@ -37,9 +42,7 @@ export default function LoginPage() {
       await login(email.trim(), password);
       router.replace("/dashboard");
     } catch (e) {
-      setError(
-        t(`errors.${authErrorSubkey(e instanceof ApiError ? e.code : null)}`),
-      );
+      showError(e);
       setBusy(false);
     }
   };
@@ -57,10 +60,20 @@ export default function LoginPage() {
       await requestMagicLink(trimmed, locale);
       setMagicSent(true);
     } catch (e) {
-      setError(
-        t(`errors.${authErrorSubkey(e instanceof ApiError ? e.code : null)}`),
-      );
+      showError(e);
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogle = async (idToken: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await googleSignIn(idToken);
+      router.replace("/dashboard");
+    } catch (e) {
+      showError(e);
       setBusy(false);
     }
   };
@@ -120,9 +133,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) =>
-                    e.key === "Enter" &&
-                    mode === "magic" &&
-                    submitMagic()
+                    e.key === "Enter" && mode === "magic" && submitMagic()
                   }
                   className="mt-1 w-full rounded-lg border border-[#E7E0D8] bg-[#FFFDF9] px-3 py-2.5 text-[#1C1917] outline-none focus:border-[#7C2D3E]"
                 />
@@ -161,7 +172,7 @@ export default function LoginPage() {
                     : t("loginButton")}
               </button>
 
-              {/* --- Divider + switch between password and magic link --- */}
+              {/* --- Divider + alternatives (Google + magic/password toggle) --- */}
               <div className="mt-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-[#EFE8E0]" />
                 <span className="text-xs uppercase tracking-wide text-[#A8A29E]">
@@ -170,12 +181,20 @@ export default function LoginPage() {
                 <span className="h-px flex-1 bg-[#EFE8E0]" />
               </div>
 
+              <div className="mt-4 flex justify-center">
+                <GoogleSignInButton
+                  onCredential={handleGoogle}
+                  locale={locale}
+                  text="continue_with"
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() =>
                   switchMode(mode === "magic" ? "password" : "magic")
                 }
-                className="mt-4 w-full rounded-xl border border-[#E7E0D8] px-4 py-2.5 font-medium text-[#7C2D3E] transition active:scale-[0.99]"
+                className="mt-3 w-full rounded-xl border border-[#E7E0D8] px-4 py-2.5 font-medium text-[#7C2D3E] transition active:scale-[0.99]"
               >
                 {mode === "magic" ? t("magicLinkBack") : t("magicLinkToggle")}
               </button>
@@ -188,6 +207,21 @@ export default function LoginPage() {
           <Link href="/register" className="font-medium text-[#7C2D3E]">
             {t("registerLink")}
           </Link>
+        </p>
+
+        <p className="mt-3 text-center text-xs text-[#A8A29E]">
+          {t.rich("legalNote", {
+            terms: (c) => (
+              <Link href="/terms" className="underline">
+                {c}
+              </Link>
+            ),
+            privacy: (c) => (
+              <Link href="/privacy" className="underline">
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       </div>
     </main>
